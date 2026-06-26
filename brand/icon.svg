@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <style>@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&amp;display=swap');</style>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0c111b"/>
+      <stop offset="1" stop-color="#04060a"/>
+    </linearGradient>
+    <linearGradient id="acc" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#ff8a26"/>
+      <stop offset="1" stop-color="#ffb347"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.44" r="0.55">
+      <stop offset="0" stop-color="#ff7a1a" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <circle cx="512" cy="486" r="380" fill="url(#glow)"/>
+
+  <g transform="translate(512,500)">
+    <g fill="url(#acc)">
+      <g><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+      <g transform="rotate(45)"><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+      <g transform="rotate(90)"><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+      <g transform="rotate(135)"><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+      <g transform="rotate(180)"><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+      <g transform="rotate(225)"><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+      <g transform="rotate(270)"><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+      <g transform="rotate(315)"><path d="M-58 -358 Q-58 -388 -28 -388 L28 -388 Q58 -388 58 -358 L48 -250 L-48 -250 Z"/></g>
+    </g>
+    <circle r="300" fill="url(#acc)"/>
+    <circle r="206" fill="#06090f"/>
+    <circle r="206" fill="none" stroke="#ff7a1a" stroke-width="4" opacity="0.5"/>
+    <text x="0" y="8" text-anchor="middle" dominant-baseline="central"
+          font-family="'Space Grotesk',Arial,sans-serif" font-weight="700" font-size="260"
+          fill="url(#acc)">B</text>
+  </g>
+</svg>

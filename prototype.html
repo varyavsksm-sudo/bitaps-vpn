@@ -1,0 +1,583 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>bitaps VPN — прототип</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--acc:#ff7a1a;--acc3:#ffae3d;--acc2:#2d8bff;--bg:#05070b;--bg2:#0a0e16;--txt:#e8edf5;--mut:#7a849a;--line:rgba(255,255,255,.08);--ok:#39d98a;--danger:#ff5470}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#0a0c10;font-family:'Space Grotesk',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.frame{width:390px;height:800px;border-radius:46px;background:var(--bg);border:1px solid var(--line);position:relative;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.stars{position:absolute;inset:0;opacity:.5;background:radial-gradient(1.3px 1.3px at 40px 120px,#fff,transparent),radial-gradient(1px 1px at 300px 80px,#fff8,transparent),radial-gradient(1.4px 1.4px at 200px 220px,var(--acc),transparent),radial-gradient(1px 1px at 60px 360px,#fff8,transparent),radial-gradient(1px 1px at 330px 420px,#fff7,transparent),radial-gradient(1px 1px at 120px 560px,#fff8,transparent),radial-gradient(1px 1px at 280px 660px,#fff7,transparent);background-repeat:no-repeat;pointer-events:none}
+.glow{position:absolute;inset:0;background:radial-gradient(360px 280px at 50% -4%,color-mix(in srgb,var(--acc) 15%,transparent),transparent),radial-gradient(300px 240px at 100% 3%,rgba(45,139,255,.09),transparent);pointer-events:none;transition:.5s}
+.view{position:absolute;inset:0;padding:54px 18px 86px;overflow-y:auto;display:none;flex-direction:column;gap:14px;color:var(--txt)}
+.view.on{display:flex}.view::-webkit-scrollbar{display:none}
+.hd{display:flex;align-items:center;justify-content:space-between}
+.lg{font:700 19px 'Space Grotesk';display:flex;align-items:center;gap:7px}.lg b{color:var(--acc)}
+.gr{width:21px;height:21px;border-radius:50%;background:linear-gradient(160deg,var(--acc3),var(--acc));color:#000;display:flex;align-items:center;justify-content:center;font:700 11px 'Space Grotesk'}
+.pill{font:500 11px 'JetBrains Mono';padding:6px 11px;border-radius:20px;border:1px solid var(--line);color:var(--mut);display:inline-flex;gap:6px;align-items:center;transition:.3s}
+.pill .d{width:6px;height:6px;border-radius:50%;background:var(--mut);transition:.3s}
+.pill.ok{color:var(--ok)}.pill.ok .d{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.title{font:700 22px 'Space Grotesk';margin-bottom:2px}
+/* POWER */
+.powerwrap{width:200px;height:200px;margin:6px auto 0;position:relative;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.pulse{position:absolute;width:150px;height:150px;border-radius:50%;border:2px solid var(--acc);opacity:0}
+.on .pulse{animation:pulse 2.4s ease-out infinite}
+.on .pulse:nth-child(2){animation-delay:.8s}.on .pulse:nth-child(3){animation-delay:1.6s}
+@keyframes pulse{0%{transform:scale(.7);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+.halo{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--acc) 45%,transparent),transparent 60%);opacity:0;transition:.5s;filter:blur(6px)}
+.on .halo{opacity:1;animation:breathe 3s ease-in-out infinite}
+.busy .halo{opacity:.6}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.08);opacity:.6}}
+.spinner{position:relative;z-index:2;transition:transform .4s}
+.busy .spinner{animation:spin 1.05s linear infinite}
+.on .spinner{animation:spin 9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.glyph{position:absolute;z-index:3;pointer-events:none}
+.arc{position:absolute;width:178px;height:178px;z-index:2;opacity:0}
+.busy .arc{opacity:1;animation:spin 1s linear infinite}
+.state{font:700 21px 'Space Grotesk';text-align:center}
+.timer{font:600 36px 'JetBrains Mono';text-align:center;color:var(--mut);transition:.3s}
+.timer.on{color:var(--acc)}
+.card{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:15px;padding:13px}
+.row{display:flex;align-items:center;gap:11px}.mut{color:var(--mut)}.mono{font-family:'JetBrains Mono'}.flag{font-size:24px}
+.gi{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--acc) 12%,transparent);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);color:var(--acc);font-size:16px;flex:none}
+.modes{display:flex;gap:7px}.mode{flex:1;text-align:center;padding:9px 3px;border-radius:11px;border:1px solid var(--line);font:600 11px 'Space Grotesk';color:var(--mut);cursor:pointer;transition:.2s}
+.mode.on{border-color:var(--acc);color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:2px}.chips::-webkit-scrollbar{display:none}
+.qc{display:inline-flex;align-items:center;gap:5px;padding:8px 13px;border-radius:20px;border:1px solid var(--line);font:600 12px 'Space Grotesk';color:var(--mut);white-space:nowrap;cursor:pointer;transition:.2s}
+.qc.on{background:var(--acc);color:#000;border-color:transparent}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:13px;padding:13px;display:flex;align-items:center;gap:9px;font:600 13px 'Space Grotesk';cursor:pointer;transition:.15s}.tile:active{transform:scale(.97)}
+.kick{font:500 10px 'JetBrains Mono';color:var(--acc)}
+.srv{display:flex;align-items:center;gap:11px;padding:11px 0;cursor:pointer}.srv.dis{opacity:.4;cursor:default}
+.badge{font:600 9px 'JetBrains Mono';padding:2px 7px;border-radius:12px;background:rgba(255,255,255,.06);color:var(--mut)}
+.badge.a{background:color-mix(in srgb,var(--acc) 14%,transparent);color:var(--acc)}.badge.ok{background:rgba(57,217,138,.16);color:var(--ok)}
+hr{border:none;border-top:1px solid var(--line);margin:0}
+.loadbar{height:3px;border-radius:2px;background:var(--line);width:44px;overflow:hidden;position:relative}.loadbar i{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:var(--ok)}
+.tabs{position:absolute;left:0;right:0;bottom:0;height:74px;background:rgba(8,10,14,.85);backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;z-index:5}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:600 10px 'Space Grotesk';color:var(--mut);cursor:pointer}
+.tab.on{color:var(--acc)}.tab svg{width:21px;height:21px}
+.btn{border:none;border-radius:13px;padding:13px;font:600 15px 'Space Grotesk';text-align:center;background:var(--acc);color:#000;cursor:pointer;width:100%}
+.btn.l{background:transparent;border:1px solid var(--line);color:var(--txt)}
+.ring2{width:58px;height:58px;border-radius:50%;background:conic-gradient(var(--acc) 0 30%,rgba(255,255,255,.08) 30%);display:flex;align-items:center;justify-content:center;flex:none}.ring2 i{width:46px;height:46px;border-radius:50%;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 13px 'JetBrains Mono';color:var(--acc)}
+.toast{position:absolute;left:50%;top:62px;transform:translateX(-50%) translateY(-16px);background:rgba(28,30,38,.97);color:var(--txt);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent);border-radius:12px;padding:11px 18px;font:600 12px 'JetBrains Mono';opacity:0;transition:.3s;z-index:50;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.5)}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* СВЕТЛАЯ ТЕМА */
+.frame.light{--bg:#eef2f8;--bg2:#ffffff;--txt:#10182a;--mut:#5a6781;--line:rgba(16,26,48,.12)}
+.frame.light .stars{display:none}
+.frame.light .glow{background:radial-gradient(360px 280px at 50% -4%,color-mix(in srgb,var(--acc) 14%,transparent),transparent),radial-gradient(300px 240px at 100% 3%,rgba(45,139,255,.08),transparent)}
+.frame.light .card,.frame.light .tile,.frame.light .iconp,.frame.light .bstyle,.frame.light .mode,.frame.light .qc{background:#fff;border-color:rgba(16,26,48,.1)}
+.frame.light .tabs{background:rgba(255,255,255,.92)}
+.frame.light .toast{background:#fff;color:#10182a}
+.frame.light .ring2 i{background:#eef2f8}
+.frame.light .loadbar{background:rgba(16,26,48,.1)}
+.sw{width:38px;height:38px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s}.sw.on{border-color:#fff;transform:scale(1.08)}
+.iconp{aspect-ratio:1;border-radius:16px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer}.iconp.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
+.bstyle{flex:1;text-align:center;padding:12px 4px;border-radius:13px;border:1px solid var(--line);cursor:pointer;font:600 11px 'Space Grotesk';color:var(--mut)}.bstyle.on{border-color:var(--acc);color:var(--acc)}
+.hint{position:fixed;bottom:14px;left:0;right:0;text-align:center;color:#54607a;font:500 12px 'JetBrains Mono'}
+</style></head><body>
+<div class="frame">
+  <div class="stars"></div><div class="glow"></div>
+
+  <!-- ГЛАВНАЯ -->
+  <div class="view on" id="v-home">
+    <div class="hd"><div class="lg"><span class="gr">B</span>bit<b>aps</b></div><div class="pill" id="pill"><span class="d"></span><span id="pillT">не защищено</span></div></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+      <div class="powerwrap" id="power" onclick="toggle()"></div>
+      <div class="state" id="state">Отключено</div>
+      <div class="timer" id="timer">00:00:00</div>
+      <div class="mut mono" style="font-size:10px">нажми на кнопку</div>
+    </div>
+    <div class="modes" id="modes">
+      <div class="mode on" onclick="setMode(this,'Авто')">Авто</div>
+      <div class="mode" onclick="setMode(this,'Стриминг')">Стрим</div>
+      <div class="mode" onclick="setMode(this,'Игры')">Игры</div>
+      <div class="mode" onclick="setMode(this,'Приватность')">Прив.</div>
+    </div>
+    <div class="card row" onclick="go('servers')" style="cursor:pointer"><span class="flag" id="hFlag">🇷🇺</span><div><b style="font:600 15px 'Space Grotesk'" id="hCity">Москва</b><div class="mut mono" style="font-size:11px" id="hSub">11 ms · Reality</div></div><span style="margin-left:auto;color:var(--acc);font:600 12px 'JetBrains Mono'">⇄ сменить</span></div>
+    <div class="chips" id="quick"></div>
+    <div class="card row" style="padding:11px 14px"><span class="mono" id="dn" style="font-size:13px;color:var(--mut)">↓ —</span><span class="mono" id="up" style="font-size:13px;color:var(--mut)">↑ —</span><span class="mut mono" style="margin-left:auto;font-size:11px">95.142.16.7</span></div>
+    <div class="tile" onclick="connectFastest()"><div class="gi">⚡</div>Авто — подключить быстрейший</div>
+  </div>
+
+  <!-- СЕРВЕРЫ -->
+  <div class="view" id="v-servers">
+    <div class="title">Серверы</div>
+    <div class="kick">// 🇷🇺 Россия — нажми, чтобы подключиться</div>
+    <div class="card" id="serverList" style="padding:2px 14px"></div>
+    <div class="kick">// 🌍 зарубежные <span class="badge">скоро</span></div>
+    <div class="card" style="padding:2px 14px">
+      <div class="srv dis"><span class="flag">🇳🇱</span><div><b style="font:600 14px 'Space Grotesk'">Амстердам</b><div class="mut mono" style="font-size:9px">Нидерланды</div></div><span class="badge a" style="margin-left:auto">PRO</span></div><hr>
+      <div class="srv dis"><span class="flag">🇩🇪</span><div><b style="font:600 14px 'Space Grotesk'">Франкфурт</b><div class="mut mono" style="font-size:9px">Германия</div></div><span class="badge a" style="margin-left:auto">PRO</span></div>
+    </div>
+  </div>
+
+  <!-- КАБИНЕТ -->
+  <div class="view" id="v-cabinet">
+    <div class="title">Кабинет</div>
+    <div class="card row"><div class="gr" id="avatar" onclick="changeAvatar()" style="width:46px;height:46px;font-size:22px;cursor:pointer;position:relative">В<span style="position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;border-radius:50%;background:var(--bg2);border:1px solid var(--line);font-size:9px;display:flex;align-items:center;justify-content:center">✎</span></div><div><b style="font:600 17px 'Space Grotesk'">Варвара</b><div class="mut mono" style="font-size:11px">@varya</div></div><span class="badge ok" style="margin-left:auto">Пробный</span></div>
+    <div class="card row" style="gap:14px"><div class="ring2"><i><div>3д</div><div class="mut" style="font-size:7px">осталось</div></i></div><div><b style="font:600 15px 'Space Grotesk'">Пробный период</b><div class="mut mono" style="font-size:10px">до 25.06 · 2/10 устройств</div></div></div>
+    <button class="btn" onclick="go('sub')">Продлить подписку →</button>
+    <div class="kick">// ключи доступа</div>
+    <div class="card" id="keyList" style="padding:3px 14px"></div>
+    <div class="card" id="keyAdd" style="display:none">
+      <div class="mut mono" style="font-size:9px;margin-bottom:8px">Вставь ключ vless:// / ss:// или ссылку на подписку</div>
+      <textarea id="keyInput" placeholder="vless://…" style="width:100%;min-height:54px;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:9px;font:500 11px 'JetBrains Mono';resize:none"></textarea>
+      <div class="row" style="gap:7px;margin-top:9px"><div class="btn l" style="flex:1;font-size:12px" onclick="pasteKey()">⎘ Из буфера</div><div class="btn l" style="flex:1;font-size:12px" onclick="scanQR()">▣ QR</div></div>
+      <div class="row" style="gap:7px;margin-top:7px"><div class="btn l" style="flex:1" onclick="toggleKeyAdd()">Отмена</div><div class="btn" style="flex:1" onclick="saveKey()">Добавить</div></div>
+    </div>
+    <button class="btn l" onclick="toggleKeyAdd()">+ Добавить ключ доступа</button>
+    <div class="kick">// под защитой</div>
+    <div class="g2"><div class="card" style="text-align:center"><div style="font:700 20px 'JetBrains Mono';color:var(--acc)">12</div><div class="mut mono" style="font-size:9px">дней подряд</div></div><div class="card" style="text-align:center"><div style="font:700 20px 'JetBrains Mono';color:var(--acc)">48 ГБ</div><div class="mut mono" style="font-size:9px">под щитом</div></div></div>
+    <div class="card row" onclick="go('game')" style="cursor:pointer;border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div class="gi">🎣</div><div><b style="font:600 14px 'Space Grotesk'">Рыбалка карпов</b><div class="mut mono" style="font-size:9px">лови карпов — выиграй дни VPN</div></div><span style="margin-left:auto;color:var(--acc)">→</span></div>
+    <div class="card row" onclick="go('order')" style="cursor:pointer"><div class="gi">📦</div><div><b style="font:600 14px 'Space Grotesk'">B-box для дома</b><div class="mut mono" style="font-size:9px">коробочка для роутера</div></div><span style="margin-left:auto;color:var(--acc)">→</span></div>
+    <button class="btn l" style="color:var(--danger);border-color:rgba(255,84,112,.3)" onclick="logout()">Выйти из аккаунта</button>
+  </div>
+
+  <!-- ПЕРСОНАЛИЗАЦИЯ (рабочая) -->
+  <div class="view" id="v-person">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> Назад</div></div>
+    <div class="title">Персонализация</div>
+    <div class="kick">// цвет и иконка — меняют всё приложение</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px" id="icons"></div>
+    <div class="kick">// стиль кнопки подключения</div>
+    <div class="row" id="bstyles" style="gap:8px"></div>
+    <div class="mut mono" style="font-size:10px;text-align:center;margin-top:4px">меняй — и сразу смотри на Главной</div>
+  </div>
+
+  <!-- НАСТРОЙКИ -->
+  <div class="view" id="v-settings">
+    <div class="title">Настройки</div>
+    <div class="card" style="padding:4px 14px">
+      <div class="srv" onclick="go('person')"><div class="gi">🎨</div><span style="font:500 13px 'Space Grotesk'">Персонализация</span><span style="margin-left:auto;color:var(--mut)">›</span></div><hr>
+      <div class="srv" onclick="go('network')"><div class="gi">🌐</div><span style="font:500 13px 'Space Grotesk'">Сеть и маршрутизация</span><span style="margin-left:auto;color:var(--mut)">›</span></div><hr>
+      <div class="srv" onclick="go('lang')"><div class="gi">🌍</div><span style="font:500 13px 'Space Grotesk'">Язык</span><span style="margin-left:auto;color:var(--mut)"><span id="langCur">Русский</span> ›</span></div><hr>
+      <div class="srv" onclick="go('leak')"><div class="gi">🛡</div><span style="font:500 13px 'Space Grotesk'">Проверка утечек</span><span style="margin-left:auto;color:var(--mut)">›</span></div><hr>
+      <div class="srv" onclick="go('schedule')"><div class="gi">⏰</div><span style="font:500 13px 'Space Grotesk'">Расписание</span><span style="margin-left:auto;color:var(--mut)">›</span></div>
+    </div>
+    <div class="kick">// тема</div>
+    <div class="modes"><div class="mode" onclick="setTheme(this,'sys')">Система</div><div class="mode" onclick="setTheme(this,'light')">Светлая</div><div class="mode on" onclick="setTheme(this,'dark')">Тёмная</div></div>
+    <button class="btn l" style="color:var(--danger);border-color:rgba(255,84,112,.3)" onclick="logout()">Выйти</button>
+  </div>
+
+  <!-- СЕТЬ И МАРШРУТИЗАЦИЯ -->
+  <div class="view" id="v-network">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> Назад</div></div>
+    <div class="title">Сеть и маршрутизация</div>
+    <div class="kick">// режим</div>
+    <div class="modes"><div class="mode on" onclick="setNetMode(this,0)">Умный</div><div class="mode" onclick="setNetMode(this,1)">Глобальный</div><div class="mode" onclick="setNetMode(this,2)">Прямой</div></div>
+    <div class="mut mono" id="netCap" style="font-size:10px;line-height:1.4">Правила решают, что идёт через VPN, а что напрямую. Рекомендуем.</div>
+    <div class="kick">// маршруты</div>
+    <div class="card row" style="border-color:var(--acc)"><div class="gi">⌥</div><div><b style="font:600 13px 'Space Grotesk'">РФ напрямую</b><div class="mut mono" style="font-size:9px">зарубежное — VPN, рф-сайты напрямую</div></div><span style="margin-left:auto;color:var(--acc)">✓</span></div>
+    <div class="card" style="padding:3px 14px">
+      <div class="srv"><div class="gi">🏠</div><span style="font:500 12px 'Space Grotesk'">Доступ к LAN</span><div class="tg" onclick="this.classList.toggle('off');this.firstElementChild.style.left=this.classList.contains('off')?'2px':'auto';this.firstElementChild.style.right=this.classList.contains('off')?'auto':'2px'" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--acc);position:relative"><span style="position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s"></span></div></div><hr>
+      <div class="srv"><div class="gi">🧩</div><span style="font:500 12px 'Space Grotesk'">TLS-фрагментация</span><div class="tg" onclick="this.classList.toggle('off');this.firstElementChild.style.left=this.classList.contains('off')?'2px':'auto';this.firstElementChild.style.right=this.classList.contains('off')?'auto':'2px'" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--acc);position:relative"><span style="position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;background:#fff"></span></div></div><hr>
+      <div class="srv"><div class="gi">☁</div><span style="font:500 12px 'Space Grotesk'">Cloudflare WARP</span><div class="tg" onclick="this.classList.toggle('off');this.firstElementChild.style.left=this.classList.contains('off')?'2px':'auto';this.firstElementChild.style.right=this.classList.contains('off')?'auto':'2px'" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--line);position:relative"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff"></span></div></div>
+    </div>
+    <div class="card row"><span style="font:500 12px 'Space Grotesk'">MTU</span><span class="mono" id="mtuVal" style="margin-left:auto">1500</span><span style="color:var(--acc);margin-left:12px;cursor:pointer;font-size:18px" onclick="bumpMTU(-20)">−</span><span style="color:var(--acc);cursor:pointer;font-size:18px" onclick="bumpMTU(20)">＋</span></div>
+  </div>
+
+  <!-- РАСПИСАНИЕ -->
+  <div class="view" id="v-schedule">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> Назад</div></div>
+    <div class="title">Расписание</div>
+    <div class="card row"><div class="gi">⏰</div><div class="mut mono" style="font-size:10px">Авто-подключение и отключение по времени</div></div>
+    <div id="schedList"></div>
+    <div class="card" id="schedAdd" style="display:none">
+      <b style="font:600 13px 'Space Grotesk'">Новое правило</b>
+      <div style="display:flex;align-items:center;justify-content:center;gap:6px;margin:12px 0;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:14px;padding:12px 0">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div onclick="bumpH(1)" style="cursor:pointer;color:var(--acc);font-size:14px">▲</div><div id="timeH" style="font:700 34px 'JetBrains Mono';width:58px;text-align:center">08</div><div onclick="bumpH(-1)" style="cursor:pointer;color:var(--acc);font-size:14px">▼</div></div>
+        <div style="font:700 30px 'JetBrains Mono';color:var(--mut);padding-bottom:2px">:</div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><div onclick="bumpM(5)" style="cursor:pointer;color:var(--acc);font-size:14px">▲</div><div id="timeM" style="font:700 34px 'JetBrains Mono';width:58px;text-align:center">00</div><div onclick="bumpM(-5)" style="cursor:pointer;color:var(--acc);font-size:14px">▼</div></div>
+      </div>
+      <div class="modes" id="schedAct" style="margin-bottom:10px"><div class="mode on" onclick="setM(this)">Подключить</div><div class="mode" onclick="setM(this)">Отключить</div></div>
+      <div class="mut mono" style="font-size:9px;margin-bottom:6px">дни:</div>
+      <div class="chips" id="dayChips" style="flex-wrap:wrap;gap:6px">
+        <div class="qc" data-d="all" onclick="pickDay(this,'all')">Каждый день</div>
+        <div class="qc" data-d="Пн" onclick="pickDay(this,'Пн')">Пн</div><div class="qc" data-d="Вт" onclick="pickDay(this,'Вт')">Вт</div><div class="qc" data-d="Ср" onclick="pickDay(this,'Ср')">Ср</div><div class="qc" data-d="Чт" onclick="pickDay(this,'Чт')">Чт</div><div class="qc" data-d="Пт" onclick="pickDay(this,'Пт')">Пт</div><div class="qc" data-d="Сб" onclick="pickDay(this,'Сб')">Сб</div><div class="qc" data-d="Вс" onclick="pickDay(this,'Вс')">Вс</div>
+      </div>
+      <div class="row" style="gap:8px;margin-top:12px"><div class="btn l" style="flex:1" onclick="toggleAdd()">Отмена</div><div class="btn" style="flex:1" onclick="saveRule()">Сохранить</div></div>
+    </div>
+    <button class="btn l" onclick="toggleAdd()">+ Добавить правило</button>
+  </div>
+
+  <!-- ПРОВЕРКА УТЕЧЕК -->
+  <div class="view" id="v-leak">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> Назад</div></div>
+    <div class="title">Проверка утечек</div>
+    <div class="card" style="text-align:center;padding:18px"><div id="leakShield" style="font-size:40px;color:var(--ok)">🛡</div><div style="font:700 15px 'Space Grotesk';margin-top:4px" id="leakState">Вы защищены</div><div class="mut mono" style="font-size:9px" id="leakSub">IP скрыт, утечек нет</div></div>
+    <div class="card" style="padding:3px 14px">
+      <div class="srv" style="cursor:default"><div class="gi">🌐</div><span style="font:500 11px 'Space Grotesk'">IP</span><span class="mono" style="margin-left:auto;color:var(--acc);font-size:10px" id="leakIP">185.244.214.10</span></div><hr>
+      <div class="srv" style="cursor:default"><div class="gi">📍</div><span style="font:500 11px 'Space Grotesk'">Гео</span><span class="mut mono" style="margin-left:auto;font-size:9px" id="leakGeo">🇳🇱 Амстердам</span></div>
+    </div>
+    <div class="card" id="leakChecks" style="padding:3px 14px"></div>
+    <button class="btn" id="leakBtn" onclick="runLeak()">Проверить</button>
+  </div>
+
+  <!-- ЗАКАЗ B-BOX -->
+  <div class="view" id="v-order">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> Назад</div></div>
+    <div class="title">Заказ B-box</div><div class="mono" style="color:var(--acc);font-size:12px;margin-top:-6px">VPN для всего дома · 4 990 ₽</div>
+    <div id="orderForm">
+      <div class="card"><div class="mut mono" style="font-size:9px;margin-bottom:4px">Имя</div><input id="oName" placeholder="Варвара" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:10px;font:500 14px 'Space Grotesk'"></div>
+      <div class="card" style="margin-top:9px"><div class="mut mono" style="font-size:9px;margin-bottom:4px">Телефон</div><input id="oPhone" placeholder="+7 999 …" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:10px;font:500 14px 'Space Grotesk'"></div>
+      <div class="card" style="margin-top:9px"><div class="mut mono" style="font-size:9px;margin-bottom:4px">Город и адрес</div><input id="oAddr" placeholder="Москва, ул. …" style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:10px;font:500 14px 'Space Grotesk'"></div>
+      <div class="mut mono" style="font-size:9px;margin:10px 2px">Доставка по России. Свяжемся для подтверждения и оплаты.</div>
+      <button class="btn" onclick="placeOrder()">📦 Оформить заказ</button>
+    </div>
+    <div id="orderDone" style="display:none;text-align:center;padding:30px"><div style="width:80px;height:80px;border-radius:50%;background:rgba(57,217,138,.15);display:flex;align-items:center;justify-content:center;color:var(--ok);font-size:36px;margin:0 auto">✓</div><div style="font:700 18px 'Space Grotesk';margin-top:14px">Заказ принят!</div><div class="mut mono" style="font-size:11px;margin-top:6px">Свяжемся по телефону для доставки</div></div>
+  </div>
+
+  <!-- ПОДПИСКА -->
+  <div class="view" id="v-sub">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> Назад</div></div>
+    <div class="title">Подписка</div>
+    <div class="card row" id="subStatusCard"><span class="badge ok">Пробный</span><span class="mut mono" style="font-size:10px">осталось 3 дня</span></div>
+    <div class="kick">// тариф</div>
+    <div id="planList"></div>
+    <div class="kick">// устройств</div>
+    <div class="modes" id="devSel"></div>
+    <div class="card row" style="border-color:var(--acc)"><span class="mut mono" style="font-size:11px" id="totalLabel">12 месяцев · 10 устройств</span><b class="mono" id="totalPrice" style="margin-left:auto;color:var(--acc);font-size:18px">1490 ₽</b></div>
+    <button class="btn" onclick="payTelegram()">⭐️ Оплатить в Telegram</button>
+    <div class="mut mono" style="font-size:9px;text-align:center">оплата через Telegram Stars · СБП/крипта — скоро</div>
+  </div>
+
+  <!-- ВХОД (после выхода) -->
+  <div class="view" id="v-login">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px">
+      <div class="lg" style="font-size:30px"><span class="gr" style="width:30px;height:30px;font-size:16px">B</span>bit<b>aps</b></div>
+      <div style="font:700 17px 'Space Grotesk';margin-top:12px">Войдите в аккаунт</div>
+      <div class="mut mono" style="font-size:10px">Один аккаунт — все устройства</div>
+    </div>
+    <button class="btn" onclick="loginIn()">✈ Войти через Telegram</button>
+    <button class="btn l" onclick="loginIn()">Попробовать демо</button>
+  </div>
+
+  <!-- ЯЗЫК -->
+  <div class="view" id="v-lang">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> <span data-keep>Назад</span></div></div>
+    <div class="title" data-keep>Язык / Language</div>
+    <div class="card" style="padding:2px 14px">
+      <div class="srv" onclick="setLang('ru')"><span class="flag">🇷🇺</span><span style="font:500 14px 'Space Grotesk'" data-keep>Русский</span><span id="ckRu" style="margin-left:auto;color:var(--acc);font-size:16px">✓</span></div><hr>
+      <div class="srv" onclick="setLang('en')"><span class="flag">🇬🇧</span><span style="font:500 14px 'Space Grotesk'" data-keep>English</span><span id="ckEn" style="margin-left:auto;color:var(--acc);font-size:16px"></span></div>
+    </div>
+  </div>
+
+  <!-- РЫБАЛКА КАРПОВ -->
+  <div class="view" id="v-game" style="padding:54px 14px 86px">
+    <div class="row" style="margin-bottom:2px"><div onclick="back()" style="cursor:pointer;display:flex;align-items:center;gap:6px;color:var(--acc);font:600 14px 'Space Grotesk'"><span style="font-size:20px">‹</span> Назад</div></div>
+    <div class="title">Рыбалка карпов</div>
+    <div class="mut mono" style="font-size:10px;line-height:1.45;margin-top:-6px">Тапай прямо по карпам. 🟡 золотой ×5, 🔴 чужак — штраф. Топ-3 за месяц — бесплатные дни bitaps VPN 🎁</div>
+    <div style="position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 20px 50px rgba(0,0,0,.4)">
+      <canvas id="pond" style="display:block;width:100%;background:linear-gradient(180deg,#0d2034,#0a1626);touch-action:none;cursor:crosshair"></canvas>
+      <div style="position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:9px;pointer-events:none;font-family:'JetBrains Mono'">
+        <div style="background:rgba(8,14,24,.7);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:5px 10px"><div style="font-size:8px;opacity:.7;letter-spacing:1px">СЧЁТ</div><b id="gScore" style="font-size:16px;color:#fff">0</b></div>
+        <div style="background:rgba(8,14,24,.7);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:5px 10px"><div style="font-size:8px;opacity:.7;letter-spacing:1px">КОМБО</div><b id="gCombo" style="font-size:16px;color:var(--acc3)">×1</b></div>
+        <div style="background:rgba(8,14,24,.7);border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:5px 10px"><div style="font-size:8px;opacity:.7;letter-spacing:1px">ВРЕМЯ</div><b id="gTime" style="font-size:16px;color:#fff">60</b></div>
+      </div>
+      <div id="gOverlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(4,7,12,.8);backdrop-filter:blur(5px);text-align:center;padding:16px">
+        <div id="gStart">
+          <div style="font:800 20px 'Space Grotesk'">Готов на <span style="color:var(--acc)">рыбалку</span>?</div>
+          <div class="mut mono" style="font-size:10px;margin:8px 0 6px">Чем мельче и быстрее карп — тем больше очков. Не сбивай комбо промахами!</div>
+          <div class="mut mono" style="font-size:10px;margin-bottom:14px">🐟 карп +очки · 🟡 золотой ×5 · 🔴 чужак штраф</div>
+          <button class="btn" style="width:auto;padding:13px 26px" onclick="Game.start()">Закинуть удочку 🎣</button>
+        </div>
+        <div id="gEnd" style="display:none">
+          <div style="font:800 18px 'Space Grotesk'">Улов готов 🎣</div>
+          <div id="gFinal" style="font:800 42px 'Space Grotesk';color:var(--acc);margin:2px 0">0</div>
+          <div class="mut mono" id="gMsg" style="font-size:10px;margin-bottom:14px">Запиши результат в топ!</div>
+          <button class="btn" style="width:auto;padding:13px 26px" onclick="Game.start()">Ещё раз 🔁</button>
+        </div>
+      </div>
+    </div>
+    <div class="kick" style="margin-top:14px">// 🏆 топ-5 рыбаков</div>
+    <div class="card" id="gBoard" style="padding:4px 14px"></div>
+    <div class="mut mono" style="font-size:9px;text-align:center">🥇 30 дней · 🥈 14 дней · 🥉 7 дней bitaps VPN — каждый месяц</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab on" data-v="home" onclick="go('home')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.5 7.5a8 8 0 1 0 11 0"/></svg>Главная</div>
+    <div class="tab" data-v="servers" onclick="go('servers')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>Серверы</div>
+    <div class="tab" data-v="cabinet" onclick="go('cabinet')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M5 21c0-4 3-6 7-6s7 2 7 6"/></svg>Кабинет</div>
+    <div class="tab" data-v="settings" onclick="go('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg>Настройки</div>
+  </div>
+  <div class="toast" id="toast"></div>
+</div>
+<div class="hint">кликай: кнопку питания · режимы · серверы · вкладки · персонализацию</div>
+
+<script>
+const servers=[
+ {id:'msk',flag:'🇷🇺',city:'Москва',c:'Россия',ping:11,load:34,fav:true},
+ {id:'spb',flag:'🇷🇺',city:'Санкт-Петербург',c:'Россия',ping:23,load:41},
+ {id:'ekb',flag:'🇷🇺',city:'Екатеринбург',c:'Россия',ping:38,load:28},
+ {id:'nsk',flag:'🇷🇺',city:'Новосибирск',c:'Россия',ping:54,load:22},
+ {id:'kzn',flag:'🇷🇺',city:'Казань',c:'Россия',ping:29,load:36},
+];
+const accents=[['#ff7a1a','#ffae3d'],['#2de2ff','#6aa8ff'],['#19d98a','#6ff0bd'],['#a779ff','#d0b3ff'],['#ff4d6d','#ff9bad']];
+const icons=[['Закат','#ff7a1a'],['Неон','#2de2ff'],['Изумруд','#19d98a'],['Лаванда','#a779ff'],['Багровый','#ff4d6d'],['Моно','#9aa3b2']];
+const bstyles=[['Кольцо','ring'],['Шестерёнка','gear'],['Сфера','orb'],['Пульс','pulse'],['Дуга','arc']];
+let st={conn:false,busy:false,server:servers[0],sec:0,timer:null,spd:null,acc:'#ff7a1a',acc3:'#ffae3d',btn:'gear'};
+
+function fmt(s){const h=String(Math.floor(s/3600)).padStart(2,'0'),m=String(Math.floor(s%3600/60)).padStart(2,'0'),x=String(s%60).padStart(2,'0');return h+':'+m+':'+x}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),1600)}
+
+function powerHTML(){
+ const gear=`<svg class="spinner" width="170" height="170" viewBox="0 0 200 200"><defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${st.acc3}"/><stop offset="1" stop-color="${st.acc}"/></linearGradient></defs><g fill="url(#pg)"><g transform="rotate(0 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(36 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(72 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(108 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(144 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(180 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(216 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(252 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(288 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g><g transform="rotate(324 100 100)"><rect x="88" y="2" width="24" height="40" rx="8"/></g></g><circle cx="100" cy="100" r="82" fill="url(#pg)"/><circle cx="100" cy="100" r="60" fill="#0a0e16"/><text x="100" y="103" text-anchor="middle" dominant-baseline="central" font-family="Space Grotesk" font-weight="700" font-size="60" fill="#fff">B</text></svg>`;
+ const glyphSVG=`<svg width="48" height="54" viewBox="0 0 24 24" fill="none" stroke="${st.conn?st.acc:'#fff'}" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.5 7.5a8 8 0 1 0 11 0"/></svg>`;
+ let inner;
+ if(st.btn==='gear'){inner=gear}
+ else if(st.btn==='ring'){inner=`<div class="spinner" style="width:150px;height:150px;border-radius:50%;border:7px solid ${st.acc};box-shadow:0 0 30px color-mix(in srgb,${st.acc} 60%,transparent)"></div><div class="glyph">${glyphSVG}</div>`}
+ else if(st.btn==='orb'){inner=`<div class="spinner" style="width:150px;height:150px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${st.acc3},${st.acc} 70%);box-shadow:0 0 36px color-mix(in srgb,${st.acc} 60%,transparent)"></div><div class="glyph">${glyphSVG}</div>`}
+ else if(st.btn==='pulse'){inner=`<div style="width:112px;height:112px;border-radius:50%;background:var(--bg2);border:2px solid ${st.acc};box-shadow:0 0 26px color-mix(in srgb,${st.acc} 50%,transparent)"></div><div class="glyph">${glyphSVG}</div>`}
+ else{inner=`<svg class="spinner" width="170" height="170" viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="9" stroke-linecap="round" stroke-dasharray="400 600" transform="rotate(130 100 100)"/><circle cx="100" cy="100" r="86" fill="none" stroke="${st.acc}" stroke-width="9" stroke-linecap="round" stroke-dasharray="400 600" transform="rotate(130 100 100)"/></svg><div class="glyph">${glyphSVG}</div>`}
+ const arc=`<svg class="arc" viewBox="0 0 200 200"><circle cx="100" cy="100" r="86" fill="none" stroke="${st.acc}" stroke-width="5" stroke-linecap="round" stroke-dasharray="120 540"/></svg>`;
+ return `<div class="halo"></div><div class="pulse"></div><div class="pulse"></div><div class="pulse"></div>${arc}${inner}`;
+}
+function applyAccent(){document.documentElement.style.setProperty('--acc',st.acc);document.documentElement.style.setProperty('--acc3',st.acc3)}
+
+function render(){
+ const power=document.getElementById('power');power.className='powerwrap'+(st.busy?' busy':st.conn?' on':'');power.innerHTML=powerHTML();
+ document.getElementById('hFlag').textContent=st.server.flag;
+ document.getElementById('hCity').textContent=st.server.city;
+ document.getElementById('hSub').textContent=st.server.ping+' ms · Reality';
+ const pill=document.getElementById('pill');pill.className='pill'+(st.conn?' ok':'');
+ document.getElementById('pillT').textContent=st.busy?'подключение…':st.conn?'защищено':'не защищено';
+ document.getElementById('state').textContent=st.busy?'Подключение…':st.conn?'Подключено':'Отключено';
+ const tm=document.getElementById('timer');tm.textContent=fmt(st.sec);tm.className='timer'+(st.conn?' on':'');
+ const q=document.getElementById('quick');q.innerHTML='';
+ // показываем только ДРУГИЕ серверы (быстро переключиться), без повтора текущего
+ const others=servers.filter(s=>s.id!==st.server.id).slice(0,4);
+ if(others.length){const lbl=document.createElement('div');lbl.className='mut mono';lbl.style.cssText='font-size:9px;align-self:center;margin-right:2px';lbl.textContent='ещё:';q.appendChild(lbl);}
+ others.forEach(s=>{const c=document.createElement('div');c.className='qc';c.innerHTML=s.flag+' '+s.city+(s.fav?' <span style="color:var(--acc3);font-size:9px">★</span>':'');c.onclick=()=>pick(s);q.appendChild(c)});
+ const L=document.getElementById('serverList');L.innerHTML='';
+ servers.forEach((s,i)=>{const d=document.createElement('div');d.className='srv';d.onclick=()=>pick(s);
+  d.innerHTML=`<span class="flag">${s.flag}</span><div><b style="font:600 14px 'Space Grotesk'">${s.city}</b><div class="mut mono" style="font-size:9px">${s.c}</div></div><div style="margin-left:auto;text-align:right"><div class="mono" style="color:var(--ok);font-size:10px">${s.ping} ms</div><div class="loadbar"><i style="width:${s.load}%"></i></div></div><span style="margin-left:8px;color:${s.id===st.server.id&&st.conn?'var(--acc)':'var(--mut)'}">${s.fav?'★':'●'}</span>`;
+  L.appendChild(d); if(i<servers.length-1)L.appendChild(document.createElement('hr'))});
+ applyLang();
+}
+function startTick(){stopTick();st.timer=setInterval(()=>{st.sec++;document.getElementById('timer').textContent=fmt(st.sec)},1000);
+ st.spd=setInterval(()=>{document.getElementById('dn').innerHTML='↓ '+(80+Math.random()*70).toFixed(0)+' Mbps';document.getElementById('dn').style.color=st.acc3;document.getElementById('up').innerHTML='↑ '+(12+Math.random()*14).toFixed(0)+' Mbps';document.getElementById('up').style.color='#8aa0ff'},900)}
+function stopTick(){clearInterval(st.timer);clearInterval(st.spd);document.getElementById('dn').innerHTML='↓ —';document.getElementById('dn').style.color='';document.getElementById('up').innerHTML='↑ —';document.getElementById('up').style.color=''}
+function toggle(){ if(st.busy)return;
+ if(st.conn){st.conn=false;st.sec=0;stopTick();render();toast('Отключено');return}
+ st.busy=true;render();setTimeout(()=>{st.busy=false;st.conn=true;st.sec=0;render();startTick();toast('🔒 Подключено · '+st.server.city)},1100)}
+function pick(s){st.server=s;
+ if(st.conn||st.busy){st.busy=true;render();setTimeout(()=>{st.busy=false;st.conn=true;st.sec=0;render();startTick();toast('🔒 '+s.city)},900)}
+ else{render();toggle()}}  /* остаёмся на текущем экране — без прыжка на Главную */
+function connectFastest(){const f=servers.slice().sort((a,b)=>a.ping-b.ping)[0];toast('⚡ Быстрейший: '+f.city);pick(f)}
+function setMode(el,n){[...document.querySelectorAll('#modes .mode')].forEach(m=>m.classList.remove('on'));el.classList.add('on');toast('Режим: '+n)}
+function setNetMode(el,i){[...el.parentElement.children].forEach(m=>m.classList.remove('on'));el.classList.add('on');
+ const caps=['Правила решают, что идёт через VPN, а что напрямую. Рекомендуем.','Весь трафик устройства идёт через VPN, без исключений.','VPN поднят, но трафик идёт напрямую — для отладки.'];
+ document.getElementById('netCap').textContent=caps[i];toast('Режим: '+el.textContent)}
+// MTU
+let mtu=1500;
+function bumpMTU(d){mtu=Math.max(1280,Math.min(1500,mtu+d));document.getElementById('mtuVal').textContent=mtu;toast('MTU '+mtu)}
+// проверка утечек — реально, зависит от подключения
+function renderLeakChecks(safe){const L=document.getElementById('leakChecks');if(!L)return;
+ const rows=[['DNS',safe],['WebRTC',true],['IPv6',safe]];
+ L.innerHTML=rows.map(([n,ok],i)=>`<div class="srv" style="cursor:default"><span style="color:${ok?'var(--ok)':'var(--acc)'}">${ok?'✓':'⚠'}</span><span style="font:500 11px 'Space Grotesk'">${n}</span><span class="mono" style="margin-left:auto;font-size:9px;color:${ok?'var(--ok)':'var(--acc)'}">${ok?'защищено':'утечка'}</span></div>${i<2?'<hr>':''}`).join('')}
+function setLeak(safe){document.getElementById('leakShield').textContent=safe?'🛡':'⚠️';document.getElementById('leakShield').style.color=safe?'var(--ok)':'var(--acc)';
+ document.getElementById('leakState').textContent=safe?'Вы защищены':'Возможны утечки';
+ document.getElementById('leakSub').textContent=safe?'IP скрыт, утечек не найдено':'Подключите VPN, чтобы скрыть IP';
+ document.getElementById('leakIP').textContent=safe?'185.244.214.10':'95.142.16.7';
+ document.getElementById('leakGeo').textContent=safe?'🇳🇱 Амстердам':'🇷🇺 Москва (реальный)';renderLeakChecks(safe)}
+function runLeak(){const b=document.getElementById('leakBtn');b.textContent='Проверяю…';document.getElementById('leakShield').textContent='🔄';
+ setTimeout(()=>{const safe=st.conn;setLeak(safe);b.textContent='Проверить ещё раз';toast(safe?'✓ Утечек нет · IP скрыт':'⚠️ Подключите VPN')},1100)}
+// расписание
+let sched=[{t:'09:00',act:'Подключить',days:'Будни',on:true},{t:'23:30',act:'Отключить',days:'Каждый день',on:false}];
+let addDays=new Set();
+function renderSched(){const L=document.getElementById('schedList');if(!L)return;L.innerHTML='';
+ sched.forEach((r,i)=>{const d=document.createElement('div');d.className='card';d.style.marginBottom='8px';
+  d.innerHTML=`<div class="row"><div class="gi">${r.act==='Подключить'?'⏻':'⭘'}</div><div><div style="font:700 18px 'JetBrains Mono';color:${r.on?'var(--acc)':'var(--mut)'}">${r.t}</div><div class="mut mono" style="font-size:8px">${r.act} · ${r.days}</div></div>
+   <div onclick="sched[${i}].on=!sched[${i}].on;renderSched()" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:${r.on?'var(--acc)':'var(--line)'};position:relative;cursor:pointer"><span style="position:absolute;top:2px;${r.on?'right:2px':'left:2px'};width:19px;height:19px;border-radius:50%;background:#fff"></span></div>
+   <span onclick="sched.splice(${i},1);renderSched();toast('Удалено')" style="margin-left:10px;color:var(--mut);cursor:pointer">🗑</span></div>`;
+  L.appendChild(d)})}
+let addH=8,addM=0;
+function pad(n){return String(n).padStart(2,'0')}
+function bumpH(d){addH=(addH+d+24)%24;document.getElementById('timeH').textContent=pad(addH)}
+function bumpM(d){addM=(addM+d+60)%60;document.getElementById('timeM').textContent=pad(addM)}
+function toggleAdd(){const p=document.getElementById('schedAdd');p.style.display=p.style.display==='none'?'block':'none';addDays=new Set();[...document.querySelectorAll('#dayChips .qc')].forEach(c=>c.classList.remove('on'))}
+function pickDay(el,d){ if(d==='all'){addDays=new Set(['all']);[...document.querySelectorAll('#dayChips .qc')].forEach(c=>c.classList.toggle('on',c===el))}
+ else{document.querySelector('#dayChips .qc[data-d="all"]').classList.remove('on');addDays.delete('all'); if(addDays.has(d)){addDays.delete(d);el.classList.remove('on')}else{addDays.add(d);el.classList.add('on')}}}
+function saveRule(){const t=pad(addH)+':'+pad(addM);
+ const act=document.querySelector('#schedAct .mode.on').textContent;
+ let days='Каждый день'; if(!addDays.has('all')&&addDays.size){days=[...addDays].join(', ')} else if(!addDays.size){days='Каждый день'}
+ sched.push({t,act,days,on:true});renderSched();toggleAdd();toast('✅ Правило сохранено · сработает в '+t)}
+// расписание РЕАЛЬНО срабатывает: каждые 10с сверяем текущее время
+let lastFired='';
+function dayOk(days){if(days==='Каждый день')return true;const wd=new Date().getDay();const we=(wd===0||wd===6);
+ if(days==='Будни')return !we; if(days==='Выходные')return we;
+ const map=['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];return days.split(', ').includes(map[wd])}
+function schedTick(){const d=new Date();const now=pad(d.getHours())+':'+pad(d.getMinutes());if(now===lastFired)return;
+ for(const r of sched){if(!r.on||r.t!==now||!dayOk(r.days))continue;
+  if(r.act==='Подключить'&&!st.conn&&!st.busy){toast('⏰ Расписание · подключаю');toggle();lastFired=now}
+  else if(r.act==='Отключить'&&st.conn){toast('⏰ Расписание · отключаю');toggle();lastFired=now}}}
+setInterval(schedTick,10000);
+// аватарка
+const avatars=['В','🦊','🐱','🐺','⚡','🛡','🚀','😎','🌟'];let ai=0;
+function changeAvatar(){ai=(ai+1)%avatars.length;const a=document.getElementById('avatar');a.firstChild.textContent=avatars[ai];a.style.background=ai===0?'linear-gradient(160deg,var(--acc3),var(--acc))':'rgba(255,255,255,.06)';toast('🖼 Аватар обновлён')}
+// ключи доступа
+let keys=[{name:'iPhone 15 Pro',k:'vless://3a7c…rprx-vision#РФ'}];
+function renderKeys(){const L=document.getElementById('keyList');if(!L)return;L.innerHTML='';keys.forEach((k,i)=>{const d=document.createElement('div');d.className='srv';d.style.cursor='default';
+ d.innerHTML=`<div class="gi">🔑</div><div style="min-width:0;flex:1"><b style="font:600 12px 'Space Grotesk'">${k.name}</b><div class="mut mono" style="font-size:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k.k}</div></div><span style="color:var(--mut);cursor:pointer;font-size:14px" onclick="copyKey(${i})">⎘</span><span style="color:var(--danger);cursor:pointer;font-size:13px" onclick="removeKey(${i})">🗑</span>`;
+ L.appendChild(d);if(i<keys.length-1)L.appendChild(document.createElement('hr'))})}
+function removeKey(i){keys.splice(i,1);renderKeys();toast('🗑 Ключ удалён')}
+function copyKey(i){const t=keys[i].k;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(()=>toast('⎘ Скопировано ✓')).catch(()=>toast('⎘ Скопировано ✓'))}else toast('⎘ Скопировано ✓')}
+function scanQR(){keys.push({name:'QR-импорт',k:'vless://qr-'+Math.random().toString(16).slice(2,8)+'…#РФ'});renderKeys();toggleKeyAdd();toast('▣ QR распознан — ключ добавлен')}
+function toggleKeyAdd(){const p=document.getElementById('keyAdd');p.style.display=p.style.display==='none'?'block':'none'}
+function pasteKey(){if(navigator.clipboard&&navigator.clipboard.readText){navigator.clipboard.readText().then(t=>{document.getElementById('keyInput').value=t;toast('⎘ Вставлено из буфера')}).catch(()=>toast('Нет доступа к буферу — вставь вручную (Cmd+V)'))}else toast('Вставь вручную: Cmd+V')}
+function saveKey(){const v=document.getElementById('keyInput').value.trim();if(!v){toast('Поле пустое');return}
+ keys.push({name:'Импортирован',k:v.length>28?v.slice(0,24)+'…':v});renderKeys();document.getElementById('keyInput').value='';toggleKeyAdd();toast('🔑 Ключ добавлен')}
+function setM(el){[...el.parentElement.children].forEach(m=>m.classList.remove('on'));el.classList.add('on')}
+let hist=['home'];
+const ALLV=['home','servers','cabinet','settings','person','network','schedule','leak','order','sub','login','lang','game'];
+const subOfSettings=['person','network','schedule','leak','lang'], subOfCabinet=['order','sub','game'];
+function go(v,isBack){
+ if(!isBack && v!==hist[hist.length-1])hist.push(v);
+ ALLV.forEach(x=>document.getElementById('v-'+x).classList.toggle('on',x===v));
+ document.querySelector('.tabs').style.display = v==='login' ? 'none' : 'flex';
+ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v||(subOfSettings.includes(v)&&t.dataset.v==='settings')||(subOfCabinet.includes(v)&&t.dataset.v==='cabinet')));
+ applyLang(); if(v==='game'){try{Game.enter()}catch(e){}}}
+// заказ B-box
+function placeOrder(){const n=document.getElementById('oName').value.trim(),p=document.getElementById('oPhone').value.trim();
+ if(!n||p.length<6){toast('Заполни имя и телефон');return}
+ document.getElementById('orderForm').style.display='none';document.getElementById('orderDone').style.display='block';toast('📦 Заказ оформлен')}
+// подписка
+const plans=[['1 месяц',199,'199 ₽/мес'],['3 месяца',499,'166 ₽/мес'],['6 месяцев',899,'150 ₽/мес'],['12 месяцев',1490,'124 ₽/мес · выгодно']];
+const devices=[1,2,3,5,10];
+let selPlan=3, selDev=4;   // по умолчанию 12 мес, 10 устройств
+function renderPlans(){const L=document.getElementById('planList');if(!L)return;L.innerHTML='';
+ plans.forEach((pl,i)=>{const d=document.createElement('div');d.className='card row';d.style.cssText='margin-bottom:8px;cursor:pointer'+(i===selPlan?';border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)':'');
+  d.innerHTML=`<div><b style="font:600 14px 'Space Grotesk'">${pl[0]}</b>${i===3?' <span class="badge a">Выгодно</span>':''}<div class="mut mono" style="font-size:9px">${pl[2]}</div></div><b class="mono" style="margin-left:auto;color:${i===selPlan?'var(--acc)':'var(--txt)'};font-size:16px">${pl[1]} ₽</b><span style="margin-left:10px;color:${i===selPlan?'var(--acc)':'var(--mut)'}">${i===selPlan?'●':'○'}</span>`;
+  d.onclick=()=>{selPlan=i;renderPlans();renderDev();updateTotal()};L.appendChild(d)});}
+function renderDev(){const D=document.getElementById('devSel');if(!D)return;D.innerHTML=devices.map((n,i)=>`<div class="mode ${i===selDev?'on':''}" onclick="selDev=${i};renderDev();updateTotal()">${n}</div>`).join('')}
+function updateTotal(){const tl=document.getElementById('totalLabel'),tp=document.getElementById('totalPrice');if(!tl)return;
+ const extra=Math.max(0,devices[selDev]-3)*20*( [1,3,6,12][selPlan] );  // доп. устройства сверх 3
+ const price=plans[selPlan][1]+extra;
+ tl.textContent=plans[selPlan][0]+' · '+devices[selDev]+' устройств';tp.textContent=price+' ₽'}
+function payTelegram(){toast('⭐️ Открываю Telegram для оплаты…');
+ setTimeout(()=>{const name=plans[selPlan][0];
+  document.getElementById('subStatusCard').innerHTML='<span class="badge ok">Активна</span><span class="mut mono" style="font-size:10px">'+name+' · '+devices[selDev]+' устройств · автопродление</span>';
+  document.querySelectorAll('.badge.ok').forEach(b=>{if(b.textContent==='Пробный')b.textContent='Активна'});
+  toast('✅ Оплачено — подписка активна')},1200)}
+// выход / вход
+function logout(){go('login');toast('Вы вышли из аккаунта')}
+function loginIn(){go('home');hist=['home'];toast('С возвращением 👋')}
+function back(){ if(hist.length>1){hist.pop();go(hist[hist.length-1],true)} else go('home',true) }
+function setTheme(el,mode){[...el.parentElement.children].forEach(m=>m.classList.remove('on'));el.classList.add('on');
+ document.querySelector('.frame').classList.toggle('light',mode==='light');
+ toast(mode==='light'?'☀️ Светлая тема':mode==='dark'?'🌙 Тёмная тема':'⚙️ Как в системе')}
+// ===== ЯЗЫК (рабочий RU/EN) =====
+let L='ru';
+const I18N={'Главная':'Home','Серверы':'Servers','Кабинет':'Account','Настройки':'Settings',
+ 'Отключено':'Disconnected','Подключено':'Connected','Подключение…':'Connecting…',
+ 'защищено':'protected','не защищено':'not protected','подключение…':'connecting…','нажми на кнопку':'tap the button',
+ 'Авто — подключить быстрейший':'Auto — connect fastest','Авто-сервер':'Auto-server','Защита':'Protection','Статистика':'Stats','Сеть':'Network',
+ 'Подписка':'Subscription','Расписание':'Schedule','Сеть и маршрутизация':'Network & Routing',
+ 'Проверка утечек':'Leak test','Персонализация':'Personalization','Заказ B-box':'Order B-box',
+ 'Профили и подписки':'Profiles & subscriptions','Профили':'Profiles','Назад':'Back',
+ 'Выйти':'Log out','Выйти из аккаунта':'Log out','Продлить подписку →':'Renew subscription →',
+ '⭐️ Оплатить в Telegram':'⭐️ Pay in Telegram','тариф':'plan','устройств':'devices','ключи доступа':'access keys','под защитой':'protected',
+ 'тема':'theme','Система':'System','Светлая':'Light','Тёмная':'Dark',
+ 'Войдите в аккаунт':'Sign in to your account','Один аккаунт — все устройства':'One account — all devices',
+ '✈ Войти через Telegram':'✈ Sign in with Telegram','Войти по email':'Sign in with email','Попробовать демо':'Try demo','Демо':'Demo',
+ 'Далее':'Next','Пропустить':'Skip','Приватность':'Privacy',
+ 'режим':'mode','маршруты':'routes','РФ напрямую':'RU direct','Доступ к LAN':'LAN access','TLS-фрагментация':'TLS fragmentation',
+ 'Умный':'Smart','Глобальный':'Global','Прямой':'Direct','Москва':'Moscow',
+ '⚡ Авто — подключить быстрейший':'⚡ Auto — connect fastest','+ Добавить ключ доступа':'+ Add access key','+ Добавить правило':'+ Add rule',
+ 'Из буфера':'Paste','Оформить заказ':'Place order','Заказ принят!':'Order placed!','Проверить':'Check','Проверить ещё раз':'Check again',
+ 'Вы защищены':'You are protected','Возможны утечки':'Leaks possible','Стрим':'Stream','Игры':'Games','Прив.':'Priv.','Авто':'Auto'};
+function applyLang(){const root=document.querySelector('.frame');
+ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){if(!n.nodeValue.trim())return NodeFilter.FILTER_REJECT;let p=n.parentElement;while(p&&p!==root){if(p.hasAttribute&&p.hasAttribute('data-keep'))return NodeFilter.FILTER_REJECT;p=p.parentElement}return NodeFilter.FILTER_ACCEPT}});
+ let n;while(n=w.nextNode()){if(n._ru===undefined)n._ru=n.nodeValue.trim();const ru=n._ru;if(I18N[ru]!==undefined)n.nodeValue=(L==='en'?I18N[ru]:ru)}}
+function setLang(code){L=code;document.getElementById('langCur').textContent=(code==='en'?'English':'Русский');
+ document.getElementById('ckRu').textContent=code==='ru'?'✓':'';document.getElementById('ckEn').textContent=code==='en'?'✓':'';
+ applyLang();toast(code==='en'?'🌍 Language: English':'🌍 Язык: Русский')}
+
+// build personalization (working)
+function buildPerson(){
+ const I=document.getElementById('icons');I.innerHTML='';icons.forEach(([n,c])=>{const d=document.createElement('div');d.className='iconp'+(c===st.acc?' on':'');
+  d.innerHTML=`<svg width="40" height="40" viewBox="0 0 200 200"><circle cx="100" cy="100" r="80" fill="${c}"/><circle cx="100" cy="100" r="56" fill="#0a0e16"/><text x="100" y="103" text-anchor="middle" dominant-baseline="central" font-family="Space Grotesk" font-weight="700" font-size="58" fill="${c}">B</text></svg><div style="font:600 9px 'Space Grotesk'">${n}</div>`;
+  d.onclick=()=>{const a3=accents.find(p=>p[0]===c);st.acc=c;st.acc3=a3?a3[1]:c;applyAccent();render();buildPerson();toast('Иконка: '+n)};I.appendChild(d)});
+ const B=document.getElementById('bstyles');B.innerHTML='';bstyles.forEach(([n,k])=>{const d=document.createElement('div');d.className='bstyle'+(k===st.btn?' on':'');d.textContent=n;d.onclick=()=>{st.btn=k;render();buildPerson();toast('Кнопка: '+n)};B.appendChild(d)});
+}
+// optional initial state via #hash (for previews): #conn,neon,orb,person
+(function(){const h=decodeURIComponent(location.hash.slice(1));if(!h){applyAccent();buildPerson();render();return}
+ const p=h.split(',');
+ if(p.includes('neon')){st.acc='#2de2ff';st.acc3='#6aa8ff'} if(p.includes('emerald')){st.acc='#19d98a';st.acc3='#6ff0bd'}
+ if(p.includes('crimson')){st.acc='#ff4d6d';st.acc3='#ff9bad'} if(p.includes('lavender')){st.acc='#a779ff';st.acc3='#d0b3ff'}
+ if(p.includes('orb'))st.btn='orb'; if(p.includes('ring'))st.btn='ring';
+ if(p.includes('conn')){st.conn=true;st.sec=848}
+ applyAccent();buildPerson();render();
+ if(st.conn){document.getElementById('dn').innerHTML='↓ 124 Mbps';document.getElementById('dn').style.color=st.acc3;document.getElementById('up').innerHTML='↑ 21 Mbps';document.getElementById('up').style.color='#8aa0ff'}
+ const v=p.find(x=>ALLV.includes(x)); if(v)go(v); if(p.includes('en'))setLang('en');
+})();
+// ===== РЫБАЛКА КАРПОВ (портирована с сайта) =====
+const Game=(function(){
+ const cv=document.getElementById('pond'),ctx=cv.getContext('2d'),$=id=>document.getElementById(id);
+ function koiSVG(b,f,p,hi){return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 0 90 186" width="90" height="186"><defs><radialGradient id="b" cx=".42" cy=".22" r=".85">'+b+'</radialGradient><linearGradient id="f" x1=".5" y1="0" x2=".5" y2="1">'+f+'</linearGradient><radialGradient id="p" cx=".4" cy=".35" r=".8">'+p+'</radialGradient></defs><g fill="none" stroke="#e8643a" stroke-width="1.4" stroke-linecap="round"><path d="M31 7 C23 2 16 4 13 11"/><path d="M33 9 C27 6 22 8 20 14"/><path d="M39 7 C47 2 54 4 57 11"/><path d="M37 9 C43 6 48 8 50 14"/></g><path d="M20 46 C4 46 -8 66 -2 88 C8 76 16 62 24 52 Z" fill="url(#f)"/><path d="M50 46 C66 46 78 66 72 88 C62 76 54 62 46 52 Z" fill="url(#f)"/><path d="M25 84 C15 86 9 99 14 109 C20 101 23 95 28 90 Z" fill="url(#f)"/><path d="M45 84 C55 86 61 99 56 109 C50 101 47 95 42 90 Z" fill="url(#f)"/><path d="M35 130 C26 150 13 180 22 180 C30 170 34 152 35 140 C36 152 40 170 48 180 C57 180 44 150 35 130 Z" fill="url(#f)"/><path d="M35 5 C42 5 46 12 47 22 C50 33 52 46 52 60 C52 86 48 110 42 128 C40 134 38 137 35 138 C32 137 30 134 28 128 C22 110 18 86 18 60 C18 46 20 33 23 22 C24 12 28 5 35 5 Z" fill="url(#b)"/><path d="M16 44 C26 40 34 47 31 60 C28 72 16 72 12 61 C9 53 10 47 16 44 Z" fill="#191512"/><path d="M44 98 C54 100 54 117 44 123 C35 127 31 114 36 104 Z" fill="#191512"/>'+(hi?'<path d="M35 12 C45 12 47 30 41 40 C36 48 29 48 25 40 C20 30 25 12 35 12 Z" fill="url(#p)"/><path d="M41 64 C51 66 52 90 41 97 C31 102 24 92 26 80 C28 68 33 62 41 64 Z" fill="url(#p)"/>':'')+'<circle cx="26" cy="20" r="1.8" fill="#0c0e10"/><circle cx="44" cy="20" r="1.8" fill="#0c0e10"/><circle cx="26.7" cy="19.3" r=".55" fill="#fff"/><circle cx="44.7" cy="19.3" r=".55" fill="#fff"/></svg>';}
+ function koiImg(svg){var im=new Image();im.onload=function(){try{var c=document.createElement('canvas');c.width=180;c.height=372;c.getContext('2d').drawImage(im,0,0,180,372);im.can=c;}catch(e){}};im.src='data:image/svg+xml;utf8,'+encodeURIComponent(svg);return im;}
+ const IMG={
+  koi:koiImg(koiSVG('<stop offset="0" stop-color="#ffffff"/><stop offset=".6" stop-color="#f3ede2"/><stop offset="1" stop-color="#dccfbb"/>','<stop offset="0" stop-color="rgba(255,170,110,.55)"/><stop offset="1" stop-color="rgba(255,150,80,.02)"/>','<stop offset="0" stop-color="#ff7a3a"/><stop offset="1" stop-color="#cf2f0c"/>',true)),
+  gold:koiImg(koiSVG('<stop offset="0" stop-color="#fff0bf"/><stop offset=".5" stop-color="#f7b13a"/><stop offset="1" stop-color="#dd8514"/>','<stop offset="0" stop-color="rgba(255,205,120,.6)"/><stop offset="1" stop-color="rgba(245,170,60,.02)"/>','<stop offset="0" stop-color="#ffd56b"/><stop offset="1" stop-color="#e08a10"/>',true)),
+  enemy:koiImg(koiSVG('<stop offset="0" stop-color="#ff9a9a"/><stop offset=".5" stop-color="#e23b3b"/><stop offset="1" stop-color="#9e0d18"/>','<stop offset="0" stop-color="rgba(255,110,110,.5)"/><stop offset="1" stop-color="rgba(220,40,40,.02)"/>','<stop offset="0" stop-color="#2a0008"/><stop offset="1" stop-color="#1a0004"/>',false))};
+ let W=300,H=300,DPR=Math.min(2,window.devicePixelRatio||1),surfGrad=null;
+ function resize(){const w=cv.clientWidth||330;const h=Math.max(Math.round(w*0.94),300);cv.width=Math.round(w*DPR);cv.height=Math.round(h*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);W=w;H=h;
+  surfGrad=ctx.createLinearGradient(0,0,0,H*0.55);surfGrad.addColorStop(0,'rgba(255,255,255,.05)');surfGrad.addColorStop(1,'rgba(255,255,255,0)');}
+ window.addEventListener('resize',()=>{if(running)resize()});
+ let fish=[],running=false,score=0,timeLeft=60,combo=1,comboTimer=0,last=0,spawnT=0,elapsed=0,ripples=[],splashes=[],pads=[],floats=[];
+ const rnd=(a,b)=>a+Math.random()*(b-a),SZ_MIN=11,SZ_MAX=30;
+ function makeFish(){const ramp=Math.min(1,elapsed/45);let kind='koi';const r=Math.random();
+  if(r<0.06)kind='gold';else if(r<0.06+0.22+ramp*0.16)kind='enemy';
+  const dir=Math.random()<.5?1:-1;let size;
+  if(kind==='gold')size=rnd(11,14);else if(kind==='enemy')size=rnd(18,24);else size=rnd(12,30);
+  const norm=(SZ_MAX-size)/(SZ_MAX-SZ_MIN),speed=100+norm*185+ramp*120,vx=speed*dir*(kind==='gold'?1.45:1),y=rnd(H*0.12,H*0.9);
+  return {kind,x:dir>0?-30:W+30,y,vx,size,phase:Math.random()*7,wob:rnd(0.6,1.4),dead:0};}
+ function pts(f){const norm=Math.max(0,Math.min(1,(SZ_MAX-f.size)/(SZ_MAX-SZ_MIN)));return Math.round(15+norm*85);}
+ function drawFish(f){const op=f.dead?Math.max(0,1-f.dead*3):1,img=IMG[f.kind]||IMG.koi,L=f.size*4.7,Wd=L*(90/186),wob=Math.sin(Date.now()/240+f.phase)*0.13,ang=(f.vx>0?Math.PI/2:-Math.PI/2)+wob;
+  ctx.save();ctx.globalAlpha=op*0.18;ctx.translate(f.x+6,f.y+10);ctx.rotate(ang);ctx.fillStyle='#000';ctx.beginPath();ctx.ellipse(0,0,Wd*0.4,L*0.4,0,0,7);ctx.fill();ctx.restore();
+  ctx.save();ctx.globalAlpha=op;ctx.translate(f.x,f.y);ctx.rotate(ang);const src=img.can||((img.complete&&img.naturalWidth)?img:null);
+  if(src)ctx.drawImage(src,-Wd/2,-L/2,Wd,L);else{ctx.fillStyle=f.kind==='gold'?'#ffd23d':f.kind==='enemy'?'#e23b3b':'#ff7a1a';ctx.beginPath();ctx.ellipse(0,0,Wd*0.42,L*0.42,0,0,7);ctx.fill();}
+  ctx.restore();ctx.globalAlpha=1;}
+ function updCombo(){$('gCombo').textContent='×'+combo.toFixed(combo<10?1:0);}
+ function addRipple(x,y){ripples.push({x,y,r:4,a:.5});}
+ function splash(x,y,col){for(let i=0;i<9;i++){const a=Math.random()*7,s=rnd(45,130);splashes.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-40,r:rnd(1.5,3.5),a:1,col});}ripples.push({x,y,r:4,a:.65});}
+ function drawSplashes(dt){for(let i=splashes.length-1;i>=0;i--){const s=splashes[i];s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy+=280*dt;s.a-=dt*1.9;if(s.a<=0){splashes.splice(i,1);continue;}ctx.globalAlpha=Math.max(0,s.a);ctx.fillStyle=s.col;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,7);ctx.fill();}ctx.globalAlpha=1;}
+ function flash(x,y,txt,col){floats.push({x,y,txt,col,a:1});}
+ function drawFloats(){for(let i=floats.length-1;i>=0;i--){const fl=floats[i];fl.y-=0.6;fl.a-=0.02;if(fl.a<=0){floats.splice(i,1);continue;}ctx.globalAlpha=Math.max(0,fl.a);ctx.fillStyle=fl.col;ctx.font='800 15px Space Grotesk';ctx.textAlign='center';ctx.fillText(fl.txt,fl.x,fl.y);ctx.globalAlpha=1;}}
+ function loop(ts){if(!running)return;const dt=Math.min(0.05,(ts-last)/1000||0);last=ts;elapsed+=dt;timeLeft-=dt;
+  if(timeLeft<=0){timeLeft=0;endGame();return;}$('gTime').textContent=Math.ceil(timeLeft);
+  spawnT-=dt;const interval=Math.max(0.35,0.95-elapsed/80);if(spawnT<=0){spawnT=interval;if(fish.length<24){fish.push(makeFish());if(Math.random()<0.3+elapsed/120&&fish.length<24)fish.push(makeFish());}}
+  comboTimer-=dt;if(comboTimer<=0&&combo>1){combo=1;updCombo();}
+  ctx.clearRect(0,0,W,H);if(surfGrad){ctx.fillStyle=surfGrad;ctx.fillRect(0,0,W,H*0.55);}
+  for(let i=ripples.length-1;i>=0;i--){const rp=ripples[i];rp.r+=dt*120;rp.a-=dt*1.6;if(rp.a<=0){ripples.splice(i,1);continue;}ctx.strokeStyle='rgba(255,255,255,'+rp.a+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(rp.x,rp.y,rp.r,0,7);ctx.stroke();}
+  drawSplashes(dt);
+  for(let i=fish.length-1;i>=0;i--){const f=fish[i];if(f.dead){f.dead+=dt;f.y-=dt*20;if(f.dead>0.34){fish.splice(i,1);continue;}drawFish(f);continue;}f.x+=f.vx*dt;f.phase+=dt*f.wob*4.5;f.y+=Math.sin(f.phase)*dt*26;if(f.x<-50||f.x>W+50)fish.splice(i,1);else drawFish(f);}
+  drawFloats();requestAnimationFrame(loop);}
+ function hit(x,y){if(!running)return;let idx=-1,bd=1e9;
+  for(let i=fish.length-1;i>=0;i--){const f=fish[i];if(f.dead)continue;const d=Math.hypot(f.x-x,f.y-y),rad=f.size*1.5;if(d<rad&&d<bd){bd=d;idx=i;}}
+  addRipple(x,y);if(idx<0){combo=1;comboTimer=0;updCombo();return;}
+  const f=fish[idx];
+  if(f.kind==='enemy'){score=Math.max(0,score-120);combo=1;comboTimer=0;updCombo();$('gScore').textContent=score;f.dead=0.001;splash(f.x,f.y,'#ff6b6b');flash(f.x,f.y,'-120','#ff4d5e');return;}
+  let gain=pts(f);if(f.kind==='gold')gain*=5;gain=Math.round(gain*combo);score+=gain;$('gScore').textContent=score;
+  combo=Math.min(20,combo+(f.kind==='gold'?1:0.5));comboTimer=1.4;updCombo();
+  f.dead=0.001;splash(f.x,f.y,f.kind==='gold'?'#ffe08a':'#9fe6ff');flash(f.x,f.y,'+'+gain,f.kind==='gold'?'#ffd23d':'#7CFFB2');}
+ function p(e){const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return {x:t.clientX-r.left,y:t.clientY-r.top};}
+ let clickT=[],lastClick=0;
+ function allow(){const now=performance.now();if(now-lastClick<100)return false;clickT=clickT.filter(t=>now-t<1000);if(clickT.length>=8)return false;lastClick=now;clickT.push(now);return true;}
+ function tap(q){if(!allow()){if(running){combo=1;comboTimer=0;updCombo();addRipple(q.x,q.y);flash(q.x,q.y,'фух! 😮‍💨','#ff6b6b');}return;}hit(q.x,q.y);}
+ cv.addEventListener('mousedown',e=>tap(p(e)));
+ cv.addEventListener('touchstart',e=>{e.preventDefault();tap(p(e));},{passive:false});
+ const BOARD=[['КарпМастер',8420],['Рыбак2000',5100],['NeoFisher',3300],['bitaps_fan',1500],['Удачник',640]];
+ function renderBoard(my){const Lb=$('gBoard');let rows=BOARD.slice();if(my!=null&&my>0)rows.push(['Варвара (ты)',my]);rows.sort((a,b)=>b[1]-a[1]);rows=rows.slice(0,5);
+  Lb.innerHTML=rows.map((r,i)=>{const you=r[0].indexOf('ты')>=0?'background:rgba(255,122,26,.12);margin:0 -10px;padding:9px 10px;border-radius:9px':'';
+   const rk=i===0?'linear-gradient(120deg,#ffd34d,#ffae3d)':i===1?'linear-gradient(120deg,#dfe7f2,#b9c6d8)':i===2?'linear-gradient(120deg,#e7a36b,#cf7f44)':'rgba(255,255,255,.06)';
+   return '<div class="srv" style="cursor:default;'+you+'"><span style="width:24px;height:24px;border-radius:7px;display:inline-grid;place-items:center;font:800 12px JetBrains Mono;background:'+rk+';color:'+(i<3?'#2a2200':'var(--mut)')+'">'+(i+1)+'</span><span style="font:600 13px \'Space Grotesk\';flex:1;margin-left:4px">'+r[0]+'</span><span class="mono" style="color:var(--acc);font-weight:700">'+r[1].toLocaleString('ru-RU')+'</span></div>'+(i<rows.length-1?'<hr>':'');}).join('');}
+ function start(){resize();fish=[];floats=[];ripples=[];splashes=[];score=0;timeLeft=60;combo=1;comboTimer=0;elapsed=0;spawnT=0;
+  $('gScore').textContent=0;$('gTime').textContent=60;updCombo();$('gOverlay').style.display='none';running=true;last=performance.now();requestAnimationFrame(loop);}
+ function endGame(){running=false;$('gFinal').textContent=score;$('gOverlay').style.display='flex';$('gStart').style.display='none';$('gEnd').style.display='block';
+  $('gMsg').textContent=score>=8000?'🔥 Уровень сенсея! Ты в топе.':score>=4000?'💪 Сильный улов!':score>=1500?'Неплохо! Запиши в топ.':'Ещё разок — будет круче!';renderBoard(score);}
+ function enter(){running=false;resize();$('gOverlay').style.display='flex';$('gStart').style.display='block';$('gEnd').style.display='none';ctx.clearRect(0,0,W,H);renderBoard(null);}
+ return {enter,start};
+})();
+renderKeys();renderSched();renderPlans();renderDev();updateTotal();setLeak(st.conn);applyLang();
+</script>
+</body></html>
