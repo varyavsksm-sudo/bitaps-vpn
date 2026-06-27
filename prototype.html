@@ -69,6 +69,12 @@ hr{border:none;border-top:1px solid var(--line);margin:0}
 .frame.light .toast{background:#fff;color:#10182a}
 .frame.light .ring2 i{background:#eef2f8}
 .frame.light .loadbar{background:rgba(16,26,48,.1)}
+/* поля ввода и игра в светлой теме */
+.frame.light input,.frame.light textarea{background:#fff!important;color:#10182a!important;border-color:rgba(16,26,48,.14)!important}
+.frame.light input::placeholder,.frame.light textarea::placeholder{color:#9aa6bd}
+.frame.light #gOverlay{background:rgba(10,15,28,.82)}
+.frame.light #gOverlay #gStart,.frame.light #gOverlay #gEnd{color:#eef2f8}
+.frame.light .gr span{background:#eef2f8}
 .sw{width:38px;height:38px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:.15s}.sw.on{border-color:#fff;transform:scale(1.08)}
 .iconp{aspect-ratio:1;border-radius:16px;border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer}.iconp.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
 .bstyle{flex:1;text-align:center;padding:12px 4px;border-radius:13px;border:1px solid var(--line);cursor:pointer;font:600 11px 'Space Grotesk';color:var(--mut)}.bstyle.on{border-color:var(--acc);color:var(--acc)}
@@ -92,10 +98,11 @@ hr{border:none;border-top:1px solid var(--line);margin:0}
       <div class="mode" onclick="setMode(this,'Игры')">Игры</div>
       <div class="mode" onclick="setMode(this,'Приватность')">Прив.</div>
     </div>
+    <div class="mut mono" id="hModeCap" style="font-size:10px;line-height:1.4;margin-top:-4px">Сами подберём лучший сервер и маршрут.</div>
     <div class="card row" onclick="go('servers')" style="cursor:pointer"><span class="flag" id="hFlag">🇷🇺</span><div><b style="font:600 15px 'Space Grotesk'" id="hCity">Москва</b><div class="mut mono" style="font-size:11px" id="hSub">11 ms · Reality</div></div><span style="margin-left:auto;color:var(--acc);font:600 12px 'JetBrains Mono'">⇄ сменить</span></div>
     <div class="chips" id="quick"></div>
     <div class="card row" style="padding:11px 14px"><span class="mono" id="dn" style="font-size:13px;color:var(--mut)">↓ —</span><span class="mono" id="up" style="font-size:13px;color:var(--mut)">↑ —</span><span class="mut mono" style="margin-left:auto;font-size:11px">95.142.16.7</span></div>
-    <div class="tile" onclick="connectFastest()"><div class="gi">⚡</div>Авто — подключить быстрейший</div>
+    <div class="tile" onclick="connectFastest()"><div class="gi">⚡</div>Подключить быстрейший сервер</div>
   </div>
 
   <!-- СЕРВЕРЫ -->
@@ -113,8 +120,8 @@ hr{border:none;border-top:1px solid var(--line);margin:0}
   <!-- КАБИНЕТ -->
   <div class="view" id="v-cabinet">
     <div class="title">Кабинет</div>
-    <div class="card row"><div class="gr" id="avatar" onclick="changeAvatar()" style="width:46px;height:46px;font-size:22px;cursor:pointer;position:relative">В<span style="position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;border-radius:50%;background:var(--bg2);border:1px solid var(--line);font-size:9px;display:flex;align-items:center;justify-content:center">✎</span></div><div><b style="font:600 17px 'Space Grotesk'">Варвара</b><div class="mut mono" style="font-size:11px">@varya</div></div><span class="badge ok" style="margin-left:auto">Пробный</span></div>
-    <div class="card row" style="gap:14px"><div class="ring2"><i><div>3д</div><div class="mut" style="font-size:7px">осталось</div></i></div><div><b style="font:600 15px 'Space Grotesk'">Пробный период</b><div class="mut mono" style="font-size:10px">до 25.06 · 2/10 устройств</div></div></div>
+    <div class="card row"><div class="gr" id="avatar" onclick="changeAvatar()" style="width:46px;height:46px;font-size:22px;cursor:pointer;position:relative">В<span style="position:absolute;right:-3px;bottom:-3px;width:18px;height:18px;border-radius:50%;background:var(--bg2);border:1px solid var(--line);font-size:9px;display:flex;align-items:center;justify-content:center">✎</span></div><div><b style="font:600 17px 'Space Grotesk'">Варвара</b><div class="mut mono" style="font-size:11px">@varya</div></div><span class="badge ok" id="cabBadge" style="margin-left:auto">Пробный</span></div>
+    <div class="card row" style="gap:14px"><div class="ring2" id="cabRing"><i><div id="cabRingTop">3д</div><div class="mut" style="font-size:7px" id="cabRingBot">осталось</div></i></div><div><b style="font:600 15px 'Space Grotesk'" id="cabPlanTitle">Пробный период</b><div class="mut mono" style="font-size:10px" id="cabPlanSub">до 25.06 · 2/10 устройств</div></div></div>
     <button class="btn" onclick="go('sub')">Продлить подписку →</button>
     <div class="kick">// ключи доступа</div>
     <div class="card" id="keyList" style="padding:3px 14px"></div>
@@ -168,11 +175,11 @@ hr{border:none;border-top:1px solid var(--line);margin:0}
     <div class="kick">// маршруты</div>
     <div class="card row" style="border-color:var(--acc)"><div class="gi">⌥</div><div><b style="font:600 13px 'Space Grotesk'">РФ напрямую</b><div class="mut mono" style="font-size:9px">зарубежное — VPN, рф-сайты напрямую</div></div><span style="margin-left:auto;color:var(--acc)">✓</span></div>
     <div class="card" style="padding:3px 14px">
-      <div class="srv"><div class="gi">🏠</div><span style="font:500 12px 'Space Grotesk'">Доступ к LAN</span><div class="tg" onclick="this.classList.toggle('off');this.firstElementChild.style.left=this.classList.contains('off')?'2px':'auto';this.firstElementChild.style.right=this.classList.contains('off')?'auto':'2px'" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--acc);position:relative"><span style="position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s"></span></div></div><hr>
-      <div class="srv"><div class="gi">🧩</div><span style="font:500 12px 'Space Grotesk'">TLS-фрагментация</span><div class="tg" onclick="this.classList.toggle('off');this.firstElementChild.style.left=this.classList.contains('off')?'2px':'auto';this.firstElementChild.style.right=this.classList.contains('off')?'auto':'2px'" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--acc);position:relative"><span style="position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;background:#fff"></span></div></div><hr>
-      <div class="srv"><div class="gi">☁</div><span style="font:500 12px 'Space Grotesk'">Cloudflare WARP</span><div class="tg" onclick="this.classList.toggle('off');this.firstElementChild.style.left=this.classList.contains('off')?'2px':'auto';this.firstElementChild.style.right=this.classList.contains('off')?'auto':'2px'" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--line);position:relative"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff"></span></div></div>
+      <div class="srv"><div class="gi">🏠</div><span style="font:500 12px 'Space Grotesk'">Доступ к LAN</span><div class="tg" onclick="flipTg(this)" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--acc);position:relative;cursor:pointer"><span style="position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s"></span></div></div><hr>
+      <div class="srv"><div class="gi">🧩</div><span style="font:500 12px 'Space Grotesk'">TLS-фрагментация</span><div class="tg" onclick="flipTg(this)" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--acc);position:relative;cursor:pointer"><span style="position:absolute;top:2px;right:2px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s"></span></div></div><hr>
+      <div class="srv"><div class="gi">☁</div><span style="font:500 12px 'Space Grotesk'">Cloudflare WARP</span><div class="tg off" onclick="flipTg(this)" style="margin-left:auto;width:40px;height:23px;border-radius:20px;background:var(--line);position:relative;cursor:pointer"><span style="position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s"></span></div></div>
     </div>
-    <div class="card row"><span style="font:500 12px 'Space Grotesk'">MTU</span><span class="mono" id="mtuVal" style="margin-left:auto">1500</span><span style="color:var(--acc);margin-left:12px;cursor:pointer;font-size:18px" onclick="bumpMTU(-20)">−</span><span style="color:var(--acc);cursor:pointer;font-size:18px" onclick="bumpMTU(20)">＋</span></div>
+    <div class="card row"><span style="font:500 12px 'Space Grotesk'">MTU</span><span class="mono" id="mtuVal" style="margin-left:auto">1500</span><span style="color:var(--acc);margin-left:10px;cursor:pointer;font-size:18px;padding:6px 12px;border:1px solid var(--line);border-radius:9px" onclick="bumpMTU(-20)">−</span><span style="color:var(--acc);cursor:pointer;font-size:18px;padding:6px 12px;border:1px solid var(--line);border-radius:9px" onclick="bumpMTU(20)">＋</span></div>
   </div>
 
   <!-- РАСПИСАНИЕ -->
@@ -223,7 +230,7 @@ hr{border:none;border-top:1px solid var(--line);margin:0}
       <div class="mut mono" style="font-size:9px;margin:10px 2px">Доставка по России. Свяжемся для подтверждения и оплаты.</div>
       <button class="btn" onclick="placeOrder()">📦 Оформить заказ</button>
     </div>
-    <div id="orderDone" style="display:none;text-align:center;padding:30px"><div style="width:80px;height:80px;border-radius:50%;background:rgba(57,217,138,.15);display:flex;align-items:center;justify-content:center;color:var(--ok);font-size:36px;margin:0 auto">✓</div><div style="font:700 18px 'Space Grotesk';margin-top:14px">Заказ принят!</div><div class="mut mono" style="font-size:11px;margin-top:6px">Свяжемся по телефону для доставки</div></div>
+    <div id="orderDone" style="display:none;text-align:center;padding:24px 0"><div style="width:80px;height:80px;border-radius:50%;background:rgba(57,217,138,.15);display:flex;align-items:center;justify-content:center;color:var(--ok);font-size:36px;margin:0 auto">✓</div><div style="font:700 18px 'Space Grotesk';margin-top:14px">Заказ принят!</div><div class="mut mono" style="font-size:11px;margin:6px 0 18px">Свяжемся по телефону для доставки</div><button class="btn" style="width:auto;padding:13px 30px" onclick="orderReset()">Готово</button></div>
   </div>
 
   <!-- ПОДПИСКА -->
@@ -363,13 +370,18 @@ function pick(s){st.server=s;
  if(st.conn||st.busy){st.busy=true;render();setTimeout(()=>{st.busy=false;st.conn=true;st.sec=0;render();startTick();toast('🔒 '+s.city)},900)}
  else{render();toggle()}}  /* остаёмся на текущем экране — без прыжка на Главную */
 function connectFastest(){const f=servers.slice().sort((a,b)=>a.ping-b.ping)[0];toast('⚡ Быстрейший: '+f.city);pick(f)}
-function setMode(el,n){[...document.querySelectorAll('#modes .mode')].forEach(m=>m.classList.remove('on'));el.classList.add('on');toast('Режим: '+n)}
+function setMode(el,n){[...document.querySelectorAll('#modes .mode')].forEach(m=>m.classList.remove('on'));el.classList.add('on');st.mode=n;
+ const caps={'Авто':'Сами подберём лучший сервер и маршрут.','Стриминг':'Оптимизировано под видео — стабильный поток, без буферизации.','Игры':'Минимальный пинг — подключаем самый быстрый сервер.','Приватность':'Максимум защиты: строгая маршрутизация, без утечек.'};
+ const c=document.getElementById('hModeCap'); if(c)c.textContent=caps[n]||'';
+ if((n==='Игры'||n==='Стриминг')&&st.conn){const f=servers.slice().sort((a,b)=>a.ping-b.ping)[0];if(f.city!==st.server.city)pick(f);}
+ toast('Режим: '+n)}
 function setNetMode(el,i){[...el.parentElement.children].forEach(m=>m.classList.remove('on'));el.classList.add('on');
  const caps=['Правила решают, что идёт через VPN, а что напрямую. Рекомендуем.','Весь трафик устройства идёт через VPN, без исключений.','VPN поднят, но трафик идёт напрямую — для отладки.'];
  document.getElementById('netCap').textContent=caps[i];toast('Режим: '+el.textContent)}
 // MTU
 let mtu=1500;
 function bumpMTU(d){mtu=Math.max(1280,Math.min(1500,mtu+d));document.getElementById('mtuVal').textContent=mtu;toast('MTU '+mtu)}
+function flipTg(el){const off=el.classList.toggle('off');el.style.background=off?'var(--line)':'var(--acc)';const d=el.firstElementChild;d.style.left=off?'2px':'auto';d.style.right=off?'auto':'2px'}
 // проверка утечек — реально, зависит от подключения
 function renderLeakChecks(safe){const L=document.getElementById('leakChecks');if(!L)return;
  const rows=[['DNS',safe],['WebRTC',true],['IPv6',safe]];
@@ -377,8 +389,9 @@ function renderLeakChecks(safe){const L=document.getElementById('leakChecks');if
 function setLeak(safe){document.getElementById('leakShield').textContent=safe?'🛡':'⚠️';document.getElementById('leakShield').style.color=safe?'var(--ok)':'var(--acc)';
  document.getElementById('leakState').textContent=safe?'Вы защищены':'Возможны утечки';
  document.getElementById('leakSub').textContent=safe?'IP скрыт, утечек не найдено':'Подключите VPN, чтобы скрыть IP';
+ const s=st.server||servers[0];
  document.getElementById('leakIP').textContent=safe?'185.244.214.10':'95.142.16.7';
- document.getElementById('leakGeo').textContent=safe?'🇳🇱 Амстердам':'🇷🇺 Москва (реальный)';renderLeakChecks(safe)}
+ document.getElementById('leakGeo').textContent=safe?(s.flag+' '+s.city+' · через VPN'):'🇷🇺 Москва (ваш реальный)';renderLeakChecks(safe)}
 function runLeak(){const b=document.getElementById('leakBtn');b.textContent='Проверяю…';document.getElementById('leakShield').textContent='🔄';
  setTimeout(()=>{const safe=st.conn;setLeak(safe);b.textContent='Проверить ещё раз';toast(safe?'✓ Утечек нет · IP скрыт':'⚠️ Подключите VPN')},1100)}
 // расписание
@@ -430,8 +443,9 @@ function setM(el){[...el.parentElement.children].forEach(m=>m.classList.remove('
 let hist=['home'];
 const ALLV=['home','servers','cabinet','settings','person','network','schedule','leak','order','sub','login','lang','game'];
 const subOfSettings=['person','network','schedule','leak','lang'], subOfCabinet=['order','sub','game'];
+const TABV=['home','servers','cabinet','settings'];
 function go(v,isBack){
- if(!isBack && v!==hist[hist.length-1])hist.push(v);
+ if(!isBack){ if(TABV.includes(v))hist=[v]; else if(v!==hist[hist.length-1])hist.push(v); }
  ALLV.forEach(x=>document.getElementById('v-'+x).classList.toggle('on',x===v));
  document.querySelector('.tabs').style.display = v==='login' ? 'none' : 'flex';
  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v||(subOfSettings.includes(v)&&t.dataset.v==='settings')||(subOfCabinet.includes(v)&&t.dataset.v==='cabinet')));
@@ -440,6 +454,8 @@ function go(v,isBack){
 function placeOrder(){const n=document.getElementById('oName').value.trim(),p=document.getElementById('oPhone').value.trim();
  if(!n||p.length<6){toast('Заполни имя и телефон');return}
  document.getElementById('orderForm').style.display='none';document.getElementById('orderDone').style.display='block';toast('📦 Заказ оформлен')}
+function orderReset(){document.getElementById('orderForm').style.display='block';document.getElementById('orderDone').style.display='none';
+ ['oName','oPhone','oAddr'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});back()}
 // подписка
 const plans=[['1 месяц',199,'199 ₽/мес'],['3 месяца',499,'166 ₽/мес'],['6 месяцев',899,'150 ₽/мес'],['12 месяцев',1490,'124 ₽/мес · выгодно']];
 const devices=[1,2,3,5,10];
@@ -454,9 +470,13 @@ function updateTotal(){const tl=document.getElementById('totalLabel'),tp=documen
  const price=plans[selPlan][1]+extra;
  tl.textContent=plans[selPlan][0]+' · '+devices[selDev]+' устройств';tp.textContent=price+' ₽'}
 function payTelegram(){toast('⭐️ Открываю Telegram для оплаты…');
- setTimeout(()=>{const name=plans[selPlan][0];
-  document.getElementById('subStatusCard').innerHTML='<span class="badge ok">Активна</span><span class="mut mono" style="font-size:10px">'+name+' · '+devices[selDev]+' устройств · автопродление</span>';
-  document.querySelectorAll('.badge.ok').forEach(b=>{if(b.textContent==='Пробный')b.textContent='Активна'});
+ setTimeout(()=>{const name=plans[selPlan][0],dev=devices[selDev];
+  document.getElementById('subStatusCard').innerHTML='<span class="badge ok">Активна</span><span class="mut mono" style="font-size:10px">'+name+' · '+dev+' устройств · автопродление</span>';
+  // синхронизируем статус подписки в Кабинете
+  const set=(id,t)=>{const e=document.getElementById(id);if(e)e.textContent=t;};
+  set('cabBadge','Активна'); set('cabPlanTitle','Подписка активна'); set('cabPlanSub',name+' · '+dev+'/10 устройств · автопродление');
+  set('cabRingTop','✓'); set('cabRingBot','активна');
+  const ring=document.getElementById('cabRing'); if(ring)ring.style.background='conic-gradient(var(--acc) 0 100%,rgba(255,255,255,.08) 0)';
   toast('✅ Оплачено — подписка активна')},1200)}
 // выход / вход
 function logout(){go('login');toast('Вы вышли из аккаунта')}
@@ -470,7 +490,7 @@ let L='ru';
 const I18N={'Главная':'Home','Серверы':'Servers','Кабинет':'Account','Настройки':'Settings',
  'Отключено':'Disconnected','Подключено':'Connected','Подключение…':'Connecting…',
  'защищено':'protected','не защищено':'not protected','подключение…':'connecting…','нажми на кнопку':'tap the button',
- 'Авто — подключить быстрейший':'Auto — connect fastest','Авто-сервер':'Auto-server','Защита':'Protection','Статистика':'Stats','Сеть':'Network',
+ 'Подключить быстрейший сервер':'Connect fastest server','Авто-сервер':'Auto-server','Защита':'Protection','Статистика':'Stats','Сеть':'Network',
  'Подписка':'Subscription','Расписание':'Schedule','Сеть и маршрутизация':'Network & Routing',
  'Проверка утечек':'Leak test','Персонализация':'Personalization','Заказ B-box':'Order B-box',
  'Профили и подписки':'Profiles & subscriptions','Профили':'Profiles','Назад':'Back',

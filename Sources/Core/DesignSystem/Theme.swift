@@ -148,9 +148,9 @@ public enum AppTheme: String, CaseIterable, Identifiable, Sendable {
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .system: return "Как на устройстве"
-        case .light:  return "Светлая"
-        case .dark:   return "Тёмная"
+        case .system: return NSLocalizedString("Как на устройстве", comment: "")
+        case .light:  return NSLocalizedString("Светлая", comment: "")
+        case .dark:   return NSLocalizedString("Тёмная", comment: "")
         }
     }
     public var colorScheme: ColorScheme? {

@@ -61,7 +61,7 @@ public struct LogsView: View {
                             .foregroundStyle(BitColor.muted)
                     }
                     Spacer(minLength: 0)
-                    BitBadge("\(store.logs.count) строк",
+                    BitBadge(String(format: NSLocalizedString("%lld строк", comment: ""), store.logs.count),
                              color: store.logs.isEmpty ? BitColor.muted : BitColor.accent)
                         .animation(.easeInOut(duration: 0.2), value: store.logs.count)
                 }
@@ -128,14 +128,14 @@ public struct LogsView: View {
 
     private func row(_ entry: LogEntry) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 9) {
-            Text(Self.timeFmt.string(from: entry.time))
+            Text(LocalizedStringKey(Self.timeFmt.string(from: entry.time)))
                 .font(BitFont.mono(11))
                 .foregroundStyle(BitColor.muted)
             Circle()
                 .fill(Color(hex: entry.level.color))
                 .frame(width: 7, height: 7)
                 .padding(.top, 3)
-            Text(entry.text)
+            Text(LocalizedStringKey(entry.text))
                 .font(BitFont.mono(12))
                 .foregroundStyle(BitColor.text)
                 .fixedSize(horizontal: false, vertical: true)

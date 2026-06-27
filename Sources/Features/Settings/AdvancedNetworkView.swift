@@ -61,7 +61,7 @@ struct AdvancedNetworkView: View {
                 cardTitle("Режим подключения", icon: "point.3.connected.trianglepath.dotted", index: 0)
                 Picker("Режим", selection: $settings.connectionMode) {
                     ForEach(ConnectionMode.allCases) { mode in
-                        Text(mode.label).tag(mode)
+                        Text(LocalizedStringKey(mode.label)).tag(mode)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -71,7 +71,7 @@ struct AdvancedNetworkView: View {
                     Image(systemName: connectionModeIcon)
                         .font(.system(size: 13))
                         .foregroundStyle(BitColor.accent)
-                    Text(connectionModeCaption)
+                    Text(LocalizedStringKey(connectionModeCaption))
                         .font(BitFont.mono(12))
                         .foregroundStyle(BitColor.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -124,10 +124,10 @@ struct AdvancedNetworkView: View {
                     .foregroundStyle(selected ? BitColor.accent : BitColor.muted)
                     .frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(mode.label)
+                    Text(LocalizedStringKey(mode.label))
                         .font(BitFont.display(15, weight: .medium))
                         .foregroundStyle(BitColor.text)
-                    Text(mode.detail)
+                    Text(LocalizedStringKey(mode.detail))
                         .font(BitFont.mono(11))
                         .foregroundStyle(BitColor.muted)
                         .fixedSize(horizontal: false, vertical: true)
@@ -218,7 +218,7 @@ struct AdvancedNetworkView: View {
                         .foregroundStyle(BitColor.text)
                     Picker("Стратегия", selection: $settings.domainStrategy) {
                         ForEach(DomainStrategy.allCases) { s in
-                            Text(s.label).tag(s)
+                            Text(LocalizedStringKey(s.label)).tag(s)
                         }
                     }
                     .pickerStyle(.segmented)
@@ -235,11 +235,11 @@ struct AdvancedNetworkView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(BitColor.accent)
                     .frame(width: 18)
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BitFont.display(13, weight: .medium))
                     .foregroundStyle(BitColor.text)
             }
-            TextField(hint, text: text)
+            TextField(LocalizedStringKey(hint), text: text)
                 .font(BitFont.mono(13))
                 .foregroundStyle(BitColor.text)
                 .textFieldStyle(.plain)
@@ -330,7 +330,7 @@ struct AdvancedNetworkView: View {
             Image(systemName: "info.circle")
                 .font(.system(size: 12))
                 .foregroundStyle(BitColor.muted)
-            Text("Изменения применяются при следующем подключении.")
+            Text("⚠️ Эти настройки активируются вместе с боевым VPN-ядром (скоро). Сейчас сохраняются, но к туннелю ещё не применяются.")
                 .font(BitFont.mono(11))
                 .foregroundStyle(BitColor.muted)
             Spacer(minLength: 0)
@@ -343,7 +343,7 @@ struct AdvancedNetworkView: View {
     private func cardTitle(_ text: String, icon: String, index: Int) -> some View {
         HStack(spacing: 12) {
             GradientIcon(icon, index: index, size: 34)
-            Text(text)
+            Text(LocalizedStringKey(text))
                 .font(BitFont.display(17, weight: .bold))
                 .foregroundStyle(BitColor.text)
         }

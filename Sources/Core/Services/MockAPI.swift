@@ -106,15 +106,18 @@ public actor MockAPI: BitAPI {
 // MARK: - Demo data
 
 public extension Plan {
+    // Real plans/prices — same source of truth as the bot (web-pay/index.ts).
+    // ids = the bot's plan codes (mo/q/h/yr) so renew() hits the right tariff.
+    // Base price is for 1 device; +50 ₽/мес per extra device is added by the bot.
     static let catalog: [Plan] = [
-        Plan(id: "m1", months: 1, pricePerMonth: 199, total: 199, title: "1 месяц",
+        Plan(id: "mo", months: 1, pricePerMonth: 399, total: 399, title: "1 месяц",
              features: ["Все локации", "Безлимит трафика", "VLESS + Reality", "Поддержка 24/7"]),
-        Plan(id: "m3", months: 3, pricePerMonth: 166, total: 499, title: "3 месяца",
+        Plan(id: "q", months: 3, pricePerMonth: 333, total: 999, title: "3 месяца",
              features: ["Всё из «1 месяца»", "Дешевле помесячно", "YouTube без рекламы", "Поддержка 24/7"]),
-        Plan(id: "m6", months: 6, pricePerMonth: 150, total: 899, title: "6 месяцев",
+        Plan(id: "h", months: 6, pricePerMonth: 298, total: 1790, title: "6 месяцев",
              features: ["Всё из «3 месяцев»", "Выгодный месяц", "Приоритетная поддержка", "Без логов"]),
-        Plan(id: "m12", months: 12, pricePerMonth: 124, total: 1490, title: "12 месяцев",
-             features: ["Всё из «6 месяцев»", "Максимальная выгода", "Выделенный IP-адрес", "Лучшая цена"],
+        Plan(id: "yr", months: 12, pricePerMonth: 249, total: 2990, title: "12 месяцев",
+             features: ["Всё из «6 месяцев»", "Максимальная выгода", "Доп. устройства", "Лучшая цена"],
              best: true)
     ]
 }

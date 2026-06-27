@@ -33,7 +33,10 @@ public struct SpeedTestView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onAppear { startSweep() }
-        .onChange(of: store.isSpeedTesting) { _ in startSweep() }
+        .onChange(of: store.isSpeedTesting) { testing in
+            if testing { startSweep() } else { stopSweep() }
+        }
+        .onDisappear { stopSweep() }
     }
 
     private func startSweep() {
@@ -42,6 +45,12 @@ public struct SpeedTestView: View {
         withAnimation(.linear(duration: 1.1).repeatForever(autoreverses: false)) {
             sweep = 1
         }
+    }
+
+    /// Cancel the repeating sweep when the test ends or the view goes away,
+    /// otherwise the repeatForever animation keeps mutating `sweep` in the background.
+    private func stopSweep() {
+        withAnimation(.easeOut(duration: 0.2)) { sweep = 0 }
     }
 
     // MARK: - Dial
@@ -178,17 +187,17 @@ public struct SpeedTestView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     GradientIcon(icon, index: chip, size: 32)
-                    Text(title)
+                    Text(LocalizedStringKey(title))
                         .font(BitFont.mono(11, weight: .medium))
                         .foregroundStyle(BitColor.muted)
                 }
                 HStack(alignment: .lastTextBaseline, spacing: 4) {
-                    Text(value)
+                    Text(LocalizedStringKey(value))
                         .font(BitFont.display(28, weight: .bold))
                         .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, color],
                                                         startPoint: .top, endPoint: .bottom))
                         .monospacedDigit()
-                    Text(unit)
+                    Text(LocalizedStringKey(unit))
                         .font(BitFont.mono(12, weight: .medium))
                         .foregroundStyle(BitColor.muted)
                 }
@@ -201,7 +210,7 @@ public struct SpeedTestView: View {
 
     private static let stampFmt: DateFormatter = {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "ru_RU")
+        f.locale = AppLanguage.currentLocale
         f.dateFormat = "d MMM, HH:mm"
         return f
     }()
@@ -238,7 +247,7 @@ public struct SpeedTestView: View {
                         speedTag(symbol: "arrow.down", value: r.downMbps, color: BitColor.accent)
                         speedTag(symbol: "arrow.up", value: r.upMbps, color: BitColor.sky)
                     }
-                    Text(Self.stampFmt.string(from: r.at))
+                    Text(LocalizedStringKey(Self.stampFmt.string(from: r.at)))
                         .font(BitFont.mono(11))
                         .foregroundStyle(BitColor.muted.opacity(0.85))
                 }
@@ -272,11 +281,11 @@ public struct SpeedTestView: View {
             Image(systemName: icon)
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(color)
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(BitFont.mono(13, weight: .semibold))
                 .foregroundStyle(BitColor.text)
                 .monospacedDigit()
-            Text(unit)
+            Text(LocalizedStringKey(unit))
                 .font(BitFont.mono(10))
                 .foregroundStyle(BitColor.muted)
         }
@@ -290,7 +299,7 @@ public struct SpeedTestView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "antenna.radiowaves.left.and.right")
                         .font(.system(size: 11, weight: .semibold))
-                    Text("Тест через узел \(city)")
+                    Text(String(format: NSLocalizedString("Тест через узел %@", comment: ""), NSLocalizedString(city, comment: "")))
                 }
                 .font(BitFont.mono(12, weight: .medium))
                 .foregroundStyle(BitColor.muted)

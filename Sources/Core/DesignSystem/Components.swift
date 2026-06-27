@@ -98,7 +98,7 @@ public struct BitButton: View {
                 } else if let icon {
                     Image(systemName: icon)
                 }
-                Text(title).font(BitFont.display(16, weight: .semibold))
+                Text(LocalizedStringKey(title)).font(BitFont.display(16, weight: .semibold))
             }
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .padding(.vertical, 13)
@@ -158,9 +158,9 @@ public struct BitToggle: View {
                     .frame(width: 22)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(BitFont.display(15, weight: .medium)).foregroundStyle(BitColor.text)
+                Text(LocalizedStringKey(title)).font(BitFont.display(15, weight: .medium)).foregroundStyle(BitColor.text)
                 if let subtitle {
-                    Text(subtitle).font(BitFont.mono(12)).foregroundStyle(BitColor.muted)
+                    Text(LocalizedStringKey(subtitle)).font(BitFont.mono(12)).foregroundStyle(BitColor.muted)
                 }
             }
             Spacer()
@@ -182,7 +182,7 @@ public struct BitBadge: View {
         self.filled = filled
     }
     public var body: some View {
-        Text(text)
+        Text(LocalizedStringKey(text))
             .font(BitFont.mono(11, weight: .semibold))
             .padding(.horizontal, 8).padding(.vertical, 4)
             .foregroundStyle(filled ? .black : color)
@@ -198,7 +198,7 @@ public struct Kicker: View {
     let text: String
     public init(_ text: String) { self.text = text }
     public var body: some View {
-        Text("// " + text)
+        (Text(verbatim: "// ") + Text(LocalizedStringKey(text)))
             .font(BitFont.mono(12, weight: .medium))
             .foregroundStyle(BitColor.accent)
             .textCase(.lowercase)

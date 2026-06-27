@@ -47,10 +47,10 @@ public struct LeakCheckView: View {
                     .font(.system(size: 54, weight: .bold))
                     .foregroundStyle(color)
                     .bitGlow(color, radius: 24, opacity: has ? 0.5 : 0)
-                Text(has ? (secure ? "Вы защищены" : "Возможны утечки") : "Статус неизвестен")
+                Text(LocalizedStringKey(has ? (secure ? "Вы защищены" : "Возможны утечки") : "Статус неизвестен"))
                     .font(BitFont.display(20, weight: .bold)).foregroundStyle(BitColor.text)
-                Text(has ? (secure ? "IP скрыт, утечек не найдено" : "Подключите VPN, чтобы закрыть утечки")
-                         : "Нажмите «Проверить»")
+                Text(LocalizedStringKey(has ? (secure ? "IP скрыт, утечек не найдено" : "Подключите VPN, чтобы закрыть утечки")
+                         : "Нажмите «Проверить»"))
                     .font(BitFont.mono(12)).foregroundStyle(BitColor.muted)
             }
             .frame(maxWidth: .infinity)
@@ -62,13 +62,13 @@ public struct LeakCheckView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Kicker("ваш адрес")
                 row(GradientIcon("network", index: 0, size: 36), "IP-адрес",
-                    Text(r.ip).font(BitFont.mono(15, weight: .semibold))
+                    Text(LocalizedStringKey(r.ip)).font(BitFont.mono(15, weight: .semibold))
                         .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, BitColor.accent],
                                                         startPoint: .top, endPoint: .bottom)))
                 row(GradientIcon("mappin.and.ellipse", index: 1, size: 36), "Местоположение",
                     Text("\(r.country) · \(r.city)").font(BitFont.mono(13)).foregroundStyle(BitColor.text))
                 row(GradientIcon("building.2.fill", index: 2, size: 36), "Провайдер",
-                    Text(r.isp).font(BitFont.mono(13)).foregroundStyle(BitColor.text))
+                    Text(LocalizedStringKey(r.isp)).font(BitFont.mono(13)).foregroundStyle(BitColor.text))
             }
         }
     }
@@ -89,7 +89,7 @@ public struct LeakCheckView: View {
     private func row<V: View>(_ icon: GradientIcon, _ title: String, _ value: V) -> some View {
         HStack(spacing: 12) {
             icon
-            Text(title).font(BitFont.display(14, weight: .medium)).foregroundStyle(BitColor.text)
+            Text(LocalizedStringKey(title)).font(BitFont.display(14, weight: .medium)).foregroundStyle(BitColor.text)
             Spacer(minLength: 8)
             value
         }
@@ -99,9 +99,9 @@ public struct LeakCheckView: View {
         HStack(spacing: 12) {
             Image(systemName: ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .font(.system(size: 18)).foregroundStyle(ok ? BitColor.ok : BitColor.warn)
-            Text(name).font(BitFont.display(15, weight: .medium)).foregroundStyle(BitColor.text)
+            Text(LocalizedStringKey(name)).font(BitFont.display(15, weight: .medium)).foregroundStyle(BitColor.text)
             Spacer()
-            Text(ok ? "защищено" : "утечка").font(BitFont.mono(12))
+            Text(LocalizedStringKey(ok ? "защищено" : "утечка")).font(BitFont.mono(12))
                 .foregroundStyle(ok ? BitColor.ok : BitColor.warn)
         }
     }

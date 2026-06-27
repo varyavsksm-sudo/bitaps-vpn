@@ -69,11 +69,11 @@ public struct StatsView: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     GradientIcon(icon, index: chip, size: 36)
-                    Text(title)
+                    Text(LocalizedStringKey(title))
                         .font(BitFont.mono(12))
                         .foregroundStyle(BitColor.muted)
                 }
-                Text(value)
+                Text(LocalizedStringKey(value))
                     .font(BitFont.display(28, weight: .bold))
                     .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, glow],
                                                     startPoint: .top, endPoint: .bottom))
@@ -94,7 +94,7 @@ public struct StatsView: View {
                 if store.isConnected {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
-                            Text(store.selectedServer?.city ?? "—")
+                            Text(LocalizedStringKey(store.selectedServer?.city ?? "—"))
                                 .font(BitFont.display(18, weight: .semibold))
                                 .foregroundStyle(BitColor.text)
                             Spacer()
@@ -129,7 +129,7 @@ public struct StatsView: View {
     @ViewBuilder private func liveStat(icon: String, chip: Int, value: String, color: Color) -> some View {
         HStack(spacing: 10) {
             GradientIcon(icon, index: chip, size: 30)
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(BitFont.mono(15, weight: .semibold))
                 .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, color],
                                                 startPoint: .top, endPoint: .bottom))
@@ -139,11 +139,11 @@ public struct StatsView: View {
 
     @ViewBuilder private func infoRow(_ label: String, _ value: String) -> some View {
         HStack {
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(BitFont.mono(12))
                 .foregroundStyle(BitColor.muted)
             Spacer()
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(BitFont.mono(12, weight: .medium))
                 .foregroundStyle(BitColor.text)
         }
@@ -183,18 +183,18 @@ public struct StatsView: View {
     @ViewBuilder private func historyRow(_ entry: TrafficLogEntry) -> some View {
         HStack(spacing: 12) {
             GradientIcon("antenna.radiowaves.left.and.right",
-                         index: abs(entry.serverCity.hashValue) % 5, size: 34)
+                         index: (entry.serverCity.hashValue & 0x7fff_ffff) % 5, size: 34)
             VStack(alignment: .leading, spacing: 4) {
-                Text(entry.serverCity)
+                Text(LocalizedStringKey(entry.serverCity))
                     .font(BitFont.display(15, weight: .semibold))
                     .foregroundStyle(BitColor.text)
-                Text(Self.timeFormatter.string(from: entry.start))
+                Text(LocalizedStringKey(Self.timeFormatter.string(from: entry.start)))
                     .font(BitFont.mono(11))
                     .foregroundStyle(BitColor.muted)
             }
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 4) {
-                Text(Fmt.duration(entry.duration))
+                Text(LocalizedStringKey(Fmt.duration(entry.duration)))
                     .font(BitFont.mono(12, weight: .semibold))
                     .foregroundStyle(BitColor.text)
                 HStack(spacing: 8) {

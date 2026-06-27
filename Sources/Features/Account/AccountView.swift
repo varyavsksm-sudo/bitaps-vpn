@@ -61,15 +61,15 @@ public struct AccountView: View {
                         .fill(BitColor.accentGradient)
                         .frame(width: 64, height: 64)
                         .bitGlow(BitColor.accent, radius: 16, opacity: 0.5)
-                    Text(initials)
+                    Text(LocalizedStringKey(initials))
                         .font(BitFont.display(24, weight: .bold))
                         .foregroundStyle(.black)
                 }
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(store.user?.displayName ?? "Гость")
+                    Text(LocalizedStringKey(store.user?.displayName ?? "Гость"))
                         .font(BitFont.display(20, weight: .bold))
                         .foregroundStyle(BitColor.text)
-                    Text(handleLine)
+                    Text(LocalizedStringKey(handleLine))
                         .font(BitFont.mono(12))
                         .foregroundStyle(BitColor.muted)
                     HStack(spacing: 6) {
@@ -124,7 +124,7 @@ public struct AccountView: View {
                               caption: "осталось")
 
                     VStack(alignment: .leading, spacing: 7) {
-                        Text(store.subscription?.planTitle ?? "Нет тарифа")
+                        Text(LocalizedStringKey(store.subscription?.planTitle ?? "Нет тарифа"))
                             .font(BitFont.display(22, weight: .bold))
                             .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, BitColor.accent],
                                                             startPoint: .top, endPoint: .bottom))
@@ -172,7 +172,7 @@ public struct AccountView: View {
 
     private var ringValue: Double { min(Double(daysLeft) / 30.0, 1) }
 
-    private var ringLabel: String { "\(daysLeft)д" }
+    private var ringLabel: String { String(format: NSLocalizedString("%lldд", comment: ""), daysLeft) }
 
     private var ringColor: Color {
         switch daysLeft {
@@ -183,17 +183,17 @@ public struct AccountView: View {
     }
 
     private var expiresLine: String {
-        guard let date = store.subscription?.expires else { return "бессрочно" }
+        guard let date = store.subscription?.expires else { return NSLocalizedString("бессрочно", comment: "") }
         let f = DateFormatter()
-        f.locale = Locale(identifier: "ru_RU")
+        f.locale = AppLanguage.currentLocale
         f.dateStyle = .medium
         f.timeStyle = .none
-        return "до " + f.string(from: date)
+        return String(format: NSLocalizedString("до %@", comment: ""), f.string(from: date))
     }
 
     private var devicesLine: String {
-        guard let sub = store.subscription else { return "Устройства: —" }
-        return "Устройства: \(sub.devicesUsed)/\(sub.deviceLimit)"
+        guard let sub = store.subscription else { return NSLocalizedString("Устройства: —", comment: "") }
+        return String(format: NSLocalizedString("Устройства: %lld/%lld", comment: ""), sub.devicesUsed, sub.deviceLimit)
     }
 
     // MARK: - 3. Ключ доступа
@@ -225,7 +225,7 @@ public struct AccountView: View {
                     .bitGlow(BitColor.accent, radius: 20, opacity: 0.3)
                     .frame(maxWidth: .infinity, alignment: .center)
 
-                Text(store.accessKey?.masked ?? "ключ ещё не выпущен")
+                Text(LocalizedStringKey(store.accessKey?.masked ?? "ключ ещё не выпущен"))
                     .font(BitFont.mono(13))
                     .foregroundStyle(BitColor.text)
                     .lineLimit(1)
@@ -290,7 +290,7 @@ public struct AccountView: View {
                     statTile("\(store.referral?.bonusDays ?? 0)", "дней получено", index: 0)
                 }
 
-                Text(store.referral?.link ?? "—")
+                Text(LocalizedStringKey(store.referral?.link ?? "—"))
                     .font(BitFont.mono(12))
                     .foregroundStyle(BitColor.accentSoft)
                     .lineLimit(1)
@@ -329,11 +329,11 @@ public struct AccountView: View {
 
     private func statTile(_ value: String, _ caption: String, index: Int) -> some View {
         VStack(spacing: 4) {
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(BitFont.display(26, weight: .bold))
                 .foregroundStyle(BitColor.chipGradient(index))
                 .bitGlow(BitColor.chipShadow(index), radius: 10, opacity: 0.35)
-            Text(caption)
+            Text(LocalizedStringKey(caption))
                 .font(BitFont.mono(10))
                 .foregroundStyle(BitColor.muted)
                 .multilineTextAlignment(.center)
@@ -393,10 +393,10 @@ public struct AccountView: View {
                     .font(.system(size: 18))
                     .foregroundStyle(BitColor.accent2)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(label)
+                    Text(LocalizedStringKey(label))
                         .font(BitFont.mono(11))
                         .foregroundStyle(BitColor.muted)
-                    Text(TelegramAuth.personalHandle)
+                    Text(LocalizedStringKey(TelegramAuth.personalHandle))
                         .font(BitFont.mono(13, weight: .semibold))
                         .foregroundStyle(BitColor.text)
                 }
@@ -500,7 +500,7 @@ public struct AccountView: View {
                 }
             } label: {
                 HStack(alignment: .top, spacing: 10) {
-                    Text(item.q)
+                    Text(LocalizedStringKey(item.q))
                         .font(BitFont.display(15, weight: .medium))
                         .foregroundStyle(BitColor.text)
                         .multilineTextAlignment(.leading)
@@ -514,7 +514,7 @@ public struct AccountView: View {
             .buttonStyle(.plain)
 
             if expanded {
-                Text(item.a)
+                Text(LocalizedStringKey(item.a))
                     .font(BitFont.mono(13))
                     .foregroundStyle(BitColor.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -619,11 +619,21 @@ struct BBoxOrderView: View {
                 BitButton("Оформить заказ", icon: "shippingbox.fill", kind: .solid, loading: placing) {
                     placing = true
                     store.addLog(.info, "Оформление заказа B-box…")
+                    // Actually submit the order through the support channel.
+                    let order = """
+                    Заказ B-box
+                    Имя: \(name)
+                    Телефон: \(phone)
+                    Город: \(city)
+                    Адрес: \(address)
+                    """
                     Task {
-                        try? await Task.sleep(nanoseconds: 900_000_000)
-                        store.addLog(.success, "Заказ B-box принят")
+                        let ok = await store.sendSupport(order)
                         placing = false
-                        withAnimation { done = true }
+                        if ok {
+                            store.addLog(.success, "Заказ B-box принят")
+                            withAnimation { done = true }
+                        }
                     }
                 }
                 .disabled(!canOrder || placing)
@@ -664,7 +674,7 @@ struct BBoxOrderView: View {
 
     private func field(_ title: String, text: Binding<String>, phone: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(title).font(BitFont.mono(11)).foregroundStyle(BitColor.muted)
+            Text(LocalizedStringKey(title)).font(BitFont.mono(11)).foregroundStyle(BitColor.muted)
             TextField("", text: text)
                 .font(BitFont.display(15))
                 .foregroundStyle(BitColor.text)

@@ -89,16 +89,16 @@ public struct SchedulerView: View {
                         .saturation(rule.enabled ? 1 : 0)
                         .opacity(rule.enabled ? 1 : 0.5)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(rule.timeString)
+                        Text(LocalizedStringKey(rule.timeString))
                             .font(BitFont.display(26, weight: .bold))
                             .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, glow],
                                                             startPoint: .top, endPoint: .bottom))
                             .bitGlow(glow, radius: 12, opacity: rule.enabled ? 0.3 : 0)
                         HStack(spacing: 8) {
-                            Text(rule.action.label)
+                            Text(LocalizedStringKey(rule.action.label))
                                 .font(BitFont.display(13, weight: .semibold))
                                 .foregroundStyle(BitColor.text)
-                            Text(rule.daysString)
+                            Text(LocalizedStringKey(rule.daysString))
                                 .font(BitFont.mono(12))
                                 .foregroundStyle(BitColor.muted)
                         }
@@ -165,7 +165,7 @@ private struct AddScheduleSheet: View {
                             Kicker("действие")
                             Picker("Действие", selection: $action) {
                                 ForEach(ScheduleAction.allCases) { a in
-                                    Text(a.label).tag(a)
+                                    Text(LocalizedStringKey(a.label)).tag(a)
                                 }
                             }
                             .pickerStyle(.segmented)
@@ -234,7 +234,7 @@ private struct AddScheduleSheet: View {
         Button {
             if on { days.remove(day) } else { days.insert(day) }
         } label: {
-            Text(dayNames[i])
+            Text(LocalizedStringKey(dayNames[i]))
                 .font(BitFont.mono(13, weight: .semibold))
                 .frame(width: 40, height: 40)
                 .foregroundStyle(on ? Color.black : BitColor.text)

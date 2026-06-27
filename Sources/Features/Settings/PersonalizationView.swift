@@ -81,7 +81,7 @@ public struct PersonalizationView: View {
                             .offset(x: 6, y: -6)
                     }
                 }
-                Text(option.label)
+                Text(LocalizedStringKey(option.label))
                     .font(BitFont.mono(12, weight: selected ? .semibold : .medium))
                     .foregroundStyle(selected ? BitColor.text : BitColor.muted)
             }
@@ -148,7 +148,7 @@ public struct PersonalizationView: View {
                             .font(BitFont.display(15, weight: .medium))
                             .foregroundStyle(BitColor.text)
                         Spacer()
-                        Text(settings.accent.label)
+                        Text(LocalizedStringKey(settings.accent.label))
                             .font(BitFont.mono(13))
                             .foregroundStyle(BitColor.accent)
                     }
@@ -200,7 +200,7 @@ public struct PersonalizationView: View {
                             .font(BitFont.display(15, weight: .medium))
                             .foregroundStyle(BitColor.text)
                         Spacer()
-                        Text(settings.connectButton.label)
+                        Text(LocalizedStringKey(settings.connectButton.label))
                             .font(BitFont.mono(13))
                             .foregroundStyle(BitColor.accent)
                     }
@@ -240,7 +240,7 @@ public struct PersonalizationView: View {
                         .allowsHitTesting(false)
                 }
                 .bitGlow(BitColor.accent, radius: selected ? 14 : 0, opacity: selected ? 0.5 : 0)
-                Text(style.label)
+                Text(LocalizedStringKey(style.label))
                     .font(BitFont.mono(12, weight: selected ? .semibold : .medium))
                     .foregroundStyle(selected ? BitColor.text : BitColor.muted)
             }

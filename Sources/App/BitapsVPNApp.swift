@@ -12,7 +12,15 @@ struct BitapsVPNApp: App {
                 .environmentObject(settings)
                 .tint(BitColor.accent)
                 .preferredColorScheme(settings.theme.colorScheme)
-                .task { await store.bootstrap() }
+                .task {
+                    store.settings = settings              // let the store gate notifications
+                    await store.bootstrap()
+                    // "Подключаться при запуске" — actually connect once we're ready.
+                    if settings.connectOnLaunch, store.isLoggedIn, !store.isConnected {
+                        await store.connect()
+                    }
+                    store.refreshExpiryNotification()
+                }
         }
         #if os(macOS)
         .defaultSize(width: 420, height: 760)
@@ -25,6 +33,7 @@ struct BitapsVPNApp: App {
             MenuBarView()
                 .environmentObject(store)
                 .environmentObject(settings)
+                .environment(\.locale, Locale(identifier: settings.localeIdentifier))
         }
         .menuBarExtraStyle(.window)
         #endif
@@ -35,18 +44,46 @@ struct BitapsVPNApp: App {
 struct RootView: View {
     @EnvironmentObject var store: AppStore
     @EnvironmentObject var settings: Settings
+    @Environment(\.scenePhase) private var scenePhase
     @State private var unlocked = false
+    @State private var authInProgress = false
 
     var body: some View {
         ZStack {
             BitBackground()
             content
             if settings.appLock && !unlocked { lockScreen }
+            #if os(iOS)
+            // Cover content while inactive so the app-switcher snapshot can't leak
+            // an unlocked screen (the real re-prompt still happens on .background).
+            if settings.appLock && unlocked && scenePhase != .active { privacyCover }
+            #endif
         }
-        .id(settings.accent)        // rebuild so the new accent recolors everything
+        // Rebuild only on LANGUAGE change (the localization bundle swizzle needs
+        // fresh views). Accent must NOT be here — it updates live via @Published
+        // and forcing a rebuild would reset navigation back to Home. [color bug]
+        .id(settings.language)
+        .environment(\.locale, Locale(identifier: settings.localeIdentifier))
         .tint(BitColor.accent)
         .preferredColorScheme(settings.theme.colorScheme)
         .onAppear { promptUnlockIfNeeded() }
+        .onChange(of: scenePhase) { phase in
+            switch phase {
+            case .background:
+                if settings.appLock { unlocked = false }
+                store.persistSession()              // don't lose session bytes on OS-kill
+            case .inactive:
+                #if os(macOS)
+                // macOS backgrounds via .inactive (focus loss / cmd-tab); .background
+                // only fires on window close — so re-arm the lock here on Mac.
+                if settings.appLock { unlocked = false }
+                #endif
+            case .active:
+                promptUnlockIfNeeded()
+            default:
+                break
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .siriConnect)) { _ in
             Task { await store.connect() }
         }
@@ -62,13 +99,17 @@ struct RootView: View {
         )) {
             Button("Ок", role: .cancel) { store.errorMessage = nil }
         } message: {
-            Text(store.errorMessage ?? "")
+            Text(LocalizedStringKey(store.errorMessage ?? ""))
         }
     }
 
     private func promptUnlockIfNeeded() {
-        guard settings.appLock, !unlocked else { return }
-        AppLockManager.authenticate { ok in withAnimation { unlocked = ok } }
+        guard settings.appLock, !unlocked, !authInProgress else { return }
+        authInProgress = true
+        AppLockManager.authenticate { ok in
+            authInProgress = false
+            withAnimation { unlocked = ok }
+        }
     }
 
     private var lockScreen: some View {
@@ -86,6 +127,16 @@ struct RootView: View {
             .padding(30)
         }
         .transition(.opacity)
+    }
+
+    /// Opaque cover shown while the app is inactive, so the OS multitasking
+    /// snapshot doesn't reveal an unlocked screen.
+    private var privacyCover: some View {
+        ZStack {
+            BitBackground()
+            GearMark(size: 64)
+        }
+        .ignoresSafeArea()
     }
 
     @ViewBuilder private var content: some View {
@@ -158,7 +209,7 @@ struct MacRootView: View {
     var body: some View {
         NavigationSplitView {
             List(Tab.allCases, selection: $tab) { t in
-                Label(t.rawValue, systemImage: t.icon).tag(t)
+                Label(LocalizedStringKey(t.rawValue), systemImage: t.icon).tag(t)
             }
             .navigationSplitViewColumnWidth(min: 180, ideal: 200)
             .safeAreaInset(edge: .top) {

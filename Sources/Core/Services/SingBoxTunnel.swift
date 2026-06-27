@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(NetworkExtension)
-import NetworkExtension
+@preconcurrency import NetworkExtension
 #endif
 
 /// Real tunnel driver. Talks to the PacketTunnel NetworkExtension which embeds
@@ -109,27 +109,18 @@ public final class SingBoxTunnel: VPNTunnel {
     }
     #endif
 
-    /// Builds the sing-box client config (VLESS + Reality outbound + tun inbound).
-    /// TODO: replace placeholders with the real keys served per-user by the API.
+    /// Builds the sing-box client config from the server's per-user key
+    /// (`server.config` = the `vpn_key` / imported share link). Empty string if
+    /// there's no key — the provider then keeps the tun up without an outbound.
     private func makeConfig(for server: Server) -> String {
-        """
-        {
-          "log": { "level": "warn" },
-          "inbounds": [{ "type": "tun", "stack": "system", "auto_route": true }],
-          "outbounds": [{
-            "type": "vless",
-            "server": "REPLACE_SERVER_HOST",
-            "server_port": 443,
-            "uuid": "REPLACE_UUID",
-            "flow": "xtls-rprx-vision",
-            "tls": {
-              "enabled": true,
-              "server_name": "REPLACE_SNI",
-              "reality": { "enabled": true, "public_key": "REPLACE_PBK", "short_id": "REPLACE_SID" },
-              "utls": { "enabled": true, "fingerprint": "chrome" }
-            }
-          }]
+        guard let key = server.config, !key.isEmpty,
+              let json = SingBoxConfig.generate(fromKey: key, routing: routing) else {
+            return ""
         }
-        """
+        return json
     }
+
+    /// Routing policy for the generated config — defaults to smart (RU direct,
+    /// rest via proxy). Set from Settings before connecting when wired.
+    public var routing: SingBoxConfig.Routing = .rules
 }

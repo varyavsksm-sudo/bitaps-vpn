@@ -98,7 +98,7 @@ public struct ProtectionView: View {
 
     @ViewBuilder private var statTiles: some View {
         statTile(title: "Защищено трафика",
-                 value: String(format: "%.1f ГБ", store.totalGB),
+                 value: String(format: NSLocalizedString("%.1f ГБ", comment: ""), store.totalGB),
                  icon: "shield.lefthalf.filled", chip: 2, glow: BitColor.teal)
         statTile(title: "Скачано",
                  value: Fmt.bytes(store.lifetimeDown),
@@ -113,14 +113,14 @@ public struct ProtectionView: View {
         BitCard {
             VStack(alignment: .leading, spacing: 12) {
                 GradientIcon(icon, index: chip, size: 34)
-                Text(value)
+                Text(LocalizedStringKey(value))
                     .font(BitFont.display(20, weight: .bold))
                     .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, glow],
                                                     startPoint: .top, endPoint: .bottom))
                     .minimumScaleFactor(0.6)
                     .lineLimit(1)
                     .bitGlow(glow, radius: 12, opacity: 0.3)
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BitFont.mono(11))
                     .foregroundStyle(BitColor.muted)
             }
@@ -136,7 +136,7 @@ public struct ProtectionView: View {
             HStack {
                 Kicker("достижения")
                 Spacer()
-                Text("\(unlockedCount) из \(store.achievements.count)")
+                Text(String(format: NSLocalizedString("%lld из %lld", comment: ""), unlockedCount, store.achievements.count))
                     .font(BitFont.mono(12, weight: .medium))
                     .foregroundStyle(BitColor.muted)
             }
@@ -168,12 +168,12 @@ public struct ProtectionView: View {
                             .offset(x: 6, y: -6)
                     }
                 }
-                Text(a.title)
+                Text(LocalizedStringKey(a.title))
                     .font(BitFont.display(14, weight: .semibold))
                     .foregroundStyle(a.unlocked ? BitColor.text : BitColor.muted)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(a.detail)
+                Text(LocalizedStringKey(a.detail))
                     .font(BitFont.mono(11))
                     .foregroundStyle(BitColor.muted)
                     .lineLimit(2)

@@ -45,6 +45,11 @@ public struct ServersView: View {
                 didInitialPing = true
                 await store.pingAll()
             }
+            .onChange(of: settings.expertMode) { expert in
+                // Leaving expert mode hides the only multi-hop control — turn it
+                // off so it can't stay silently enabled with no way to disable it.
+                if !expert, store.multiHop.enabled { store.multiHop = MultiHop() }
+            }
         }
     }
 
@@ -76,7 +81,7 @@ public struct ServersView: View {
 
                 autoHero
 
-                multiHopCard
+                if settings.expertMode { multiHopCard }   // double-VPN — expert only
 
                 searchField
 
@@ -97,7 +102,7 @@ public struct ServersView: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 40)
                 } else if filteredGroups.isEmpty {
-                    Text("Ничего не нашлось по запросу «\(query)»")
+                    Text(String(format: NSLocalizedString("Ничего не нашлось по запросу «%@»", comment: ""), query))
                         .font(BitFont.mono(13))
                         .foregroundStyle(BitColor.muted)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -191,7 +196,7 @@ public struct ServersView: View {
                     }
 
                     if let e = entry, let x = exit {
-                        Text("\(e.flag) \(e.city) → \(x.flag) \(x.city)")
+                        (Text(verbatim: "\(e.flag) ") + Text(LocalizedStringKey(e.city)) + Text(verbatim: " → \(x.flag) ") + Text(LocalizedStringKey(x.city)))
                             .font(BitFont.mono(12, weight: .semibold))
                             .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, BitColor.accent],
                                                             startPoint: .top, endPoint: .bottom))
@@ -233,15 +238,25 @@ public struct ServersView: View {
                 Button {
                     onPick(s)
                 } label: {
-                    Label("\(s.flag) \(s.city)", systemImage: current?.id == s.id ? "checkmark" : "")
+                    Label {
+                        Text(verbatim: "\(s.flag) ") + Text(LocalizedStringKey(s.city))
+                    } icon: {
+                        Image(systemName: current?.id == s.id ? "checkmark" : "circle")
+                    }
                 }
             }
         } label: {
             VStack(alignment: .leading, spacing: 3) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BitFont.mono(10, weight: .semibold))
                     .foregroundStyle(BitColor.accent)
-                Text(current.map { "\($0.flag) \($0.city)" } ?? "Выбрать")
+                Group {
+                    if let c = current {
+                        Text(verbatim: "\(c.flag) ") + Text(LocalizedStringKey(c.city))
+                    } else {
+                        Text(LocalizedStringKey("Выбрать"))
+                    }
+                }
                     .font(BitFont.display(14, weight: .semibold))
                     .foregroundStyle(BitColor.text)
                     .lineLimit(1)
@@ -367,14 +382,14 @@ public struct ServersView: View {
         BitCard(padding: 12) {
             VStack(alignment: .leading, spacing: 10) {
                 GradientIcon(icon, index: index, size: 34)
-                Text(value)
+                Text(LocalizedStringKey(value))
                     .font(BitFont.display(22, weight: .bold))
                     .foregroundStyle(LinearGradient(colors: [BitColor.accentSoft, BitColor.accent],
                                                     startPoint: .top, endPoint: .bottom))
                     .bitGlow(BitColor.accent, radius: 8, opacity: 0.25)
                     .minimumScaleFactor(0.7)
                     .lineLimit(1)
-                Text(caption)
+                Text(LocalizedStringKey(caption))
                     .font(BitFont.mono(10))
                     .foregroundStyle(BitColor.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -429,7 +444,7 @@ public struct ServersView: View {
                                 .foregroundStyle(BitColor.text)
                             BitBadge("АВТО", color: BitColor.accent)
                         }
-                        Text(autoSubtitle(fastest))
+                        Text(LocalizedStringKey(autoSubtitle(fastest)))
                             .font(BitFont.mono(12))
                             .foregroundStyle(BitColor.muted)
                     }
@@ -467,7 +482,7 @@ public struct ServersView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.up.arrow.down")
-                    Text(sortByPing ? "По пингу" : "По группам")
+                    Text(LocalizedStringKey(sortByPing ? "По пингу" : "По группам"))
                 }
                 .font(BitFont.mono(12, weight: .semibold))
                 .padding(.horizontal, 12)
@@ -556,7 +571,7 @@ private struct ServerRow: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
-                        Text(server.city)
+                        Text(LocalizedStringKey(server.city))
                             .font(BitFont.display(16, weight: .semibold))
                             .foregroundStyle(BitColor.text)
                         if server.premium {
@@ -566,7 +581,7 @@ private struct ServerRow: View {
                             BitBadge("Скоро", color: BitColor.muted)
                         }
                     }
-                    Text(server.countryName)
+                    Text(LocalizedStringKey(server.countryName))
                         .font(BitFont.mono(12))
                         .foregroundStyle(BitColor.muted)
                 }
@@ -618,7 +633,7 @@ private struct ServerRow: View {
     /// Frosted-glass chip with a soft accent ring holding the country flag emoji.
     @ViewBuilder private var flagChip: some View {
         let shape = RoundedRectangle(cornerRadius: 13, style: .continuous)
-        Text(server.flag)
+        Text(LocalizedStringKey(server.flag))
             .font(.system(size: 22))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(shape.fill(.ultraThinMaterial))
@@ -638,7 +653,7 @@ private struct ServerRow: View {
     /// nominal value, muted.
     @ViewBuilder private var pingLabel: some View {
         if let m = measured {
-            Text(m.ms.map { "\($0) ms" } ?? "—")
+            Text(LocalizedStringKey(m.ms.map { "\($0) ms" } ?? "—"))
                 .font(BitFont.mono(12, weight: .semibold))
                 .foregroundStyle(pingColor(m.ms))
         } else {

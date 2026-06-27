@@ -9,7 +9,6 @@ public struct SubscriptionView: View {
 
     /// Выбранный тариф для нижней CTA (по умолчанию — «выгодный» или первый).
     @State private var selected: Plan?
-    @State private var renewing = false
 
     public init() {}
 
@@ -17,6 +16,7 @@ public struct SubscriptionView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: BitMetric.gap + 8) {
                 header
+                if showTrial { trialBanner }
                 currentStatusCard
                 plansSection
                 paymentNote
@@ -36,6 +36,34 @@ public struct SubscriptionView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { ctaBar }
+    }
+
+    // MARK: - Trial
+
+    /// Show the free-trial nudge only to genuinely new accounts — not to someone
+    /// whose paid subscription has expired.
+    private var showTrial: Bool {
+        guard let sub = store.subscription else { return true }   // never subscribed
+        return sub.status == .none
+    }
+
+    private var trialBanner: some View {
+        BitCard {
+            HStack(spacing: 14) {
+                GradientIcon("gift.fill", index: 0, size: 44)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("3 дня бесплатно")
+                        .font(BitFont.display(16, weight: .bold))
+                        .foregroundStyle(BitColor.text)
+                    Text("Попробуйте в боте — без оплаты и карты.")
+                        .font(BitFont.mono(12))
+                        .foregroundStyle(BitColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .bitGlow(BitColor.accent, radius: 18, opacity: 0.2)
     }
 
     // MARK: - Header
@@ -67,7 +95,7 @@ public struct SubscriptionView: View {
                         GradientIcon("crown.fill", index: 0, size: 46)
                             .bitGlow(BitColor.accent, radius: 16, opacity: 0.4)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(sub.planTitle)
+                            Text(LocalizedStringKey(sub.planTitle))
                                 .font(BitFont.display(20, weight: .bold))
                                 .foregroundStyle(BitColor.text)
                             Text("Текущий тариф")
@@ -107,11 +135,11 @@ public struct SubscriptionView: View {
     private func statRow(icon: String, index: Int, label: String, value: String) -> some View {
         HStack(spacing: 12) {
             GradientIcon(icon, index: index, size: 28)
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(BitFont.mono(12))
                 .foregroundStyle(BitColor.muted)
             Spacer()
-            Text(value)
+            Text(LocalizedStringKey(value))
                 .font(BitFont.mono(14, weight: .semibold))
                 .foregroundStyle(BitColor.text)
         }
@@ -127,13 +155,13 @@ public struct SubscriptionView: View {
 
     private func daysLeftText(_ sub: Subscription) -> String {
         guard let d = sub.daysLeft else { return "—" }
-        return d > 0 ? "\(d) дн." : "истекла"
+        return d > 0 ? String(format: NSLocalizedString("%lld дн.", comment: ""), d) : NSLocalizedString("истекла", comment: "")
     }
 
     private func expiresText(_ sub: Subscription) -> String {
         guard let date = sub.expires else { return "—" }
         let f = DateFormatter()
-        f.locale = Locale(identifier: "ru_RU")
+        f.locale = AppLanguage.currentLocale
         f.dateStyle = .medium
         f.timeStyle = .none
         return f.string(from: date)
@@ -162,7 +190,7 @@ public struct SubscriptionView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack(alignment: .center, spacing: 12) {
                         GradientIcon(planIcon(plan), index: index, size: 40)
-                        Text(plan.title)
+                        Text(LocalizedStringKey(plan.title))
                             .font(BitFont.display(18, weight: .bold))
                             .foregroundStyle(BitColor.text)
                         Spacer(minLength: 0)
@@ -191,7 +219,7 @@ public struct SubscriptionView: View {
                             .foregroundStyle(BitColor.muted)
                     }
 
-                    Text("Итого \(plan.total) ₽ за \(plan.months) мес")
+                    Text(String(format: NSLocalizedString("Итого %lld ₽ за %lld мес", comment: ""), plan.total, plan.months))
                         .font(BitFont.mono(12, weight: .medium))
                         .foregroundStyle(BitColor.accentSoft)
 
@@ -203,7 +231,7 @@ public struct SubscriptionView: View {
                                         .font(.system(size: 13))
                                         .foregroundStyle(BitColor.ok)
                                         .padding(.top, 1)
-                                    Text(feature)
+                                    Text(LocalizedStringKey(feature))
                                         .font(BitFont.mono(12))
                                         .foregroundStyle(BitColor.text.opacity(0.85))
                                     Spacer(minLength: 0)
@@ -251,7 +279,7 @@ public struct SubscriptionView: View {
                         .font(BitFont.display(15, weight: .bold))
                         .foregroundStyle(BitColor.text)
                 }
-                Text("Продление оформляется в боте @\(TelegramAuth.botUsername) — быстро и без карты.")
+                Text(String(format: NSLocalizedString("Продление оформляется в боте @%@ — быстро и без карты.", comment: ""), TelegramAuth.botUsername))
                     .font(BitFont.mono(12))
                     .foregroundStyle(BitColor.muted)
                 HStack(spacing: 10) {
@@ -272,8 +300,7 @@ public struct SubscriptionView: View {
             if let plan = selected {
                 BitButton(ctaTitle(plan),
                           icon: "star.fill",
-                          kind: .solid,
-                          loading: renewing) {
+                          kind: .solid) {
                     pay(plan)
                 }
                 Text("Нажимая, вы откроете оплату в Telegram")
@@ -296,16 +323,15 @@ public struct SubscriptionView: View {
 
     private func ctaTitle(_ plan: Plan) -> String {
         let isActive = store.subscription?.status == .active || store.subscription?.status == .trial
-        return (isActive ? "Продлить — " : "Выбрать — ") + "\(plan.total) ₽"
+        let fmt = isActive ? NSLocalizedString("Продлить — %lld ₽", comment: "")
+                           : NSLocalizedString("Выбрать — %lld ₽", comment: "")
+        return String(format: fmt, plan.total)
     }
 
     private func pay(_ plan: Plan) {
-        renewing = true
-        // Реальная оплата — в Telegram. Параллельно отмечаем продление в сторе (mock).
+        // Payment happens in Telegram. We do NOT mark the subscription active here —
+        // it updates only when the backend confirms a real payment.
+        store.addLog(.info, "Оплата открыта в Telegram")
         openURL(TelegramAuth.subscribeURL())
-        Task {
-            await store.renew(plan)
-            renewing = false
-        }
     }
 }

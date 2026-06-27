@@ -36,17 +36,19 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
     @Published public var referral: Referral?
     @Published public var faq: [FAQItem] = []
 
-    // New features: multi-hop, favorites/recents, pause, gamification, trusted nets, split tunnel, speed history
-    @Published public var multiHop = MultiHop()
-    @Published public var favorites: Set<String> = []
-    @Published public var recents: [String] = []
-    @Published public var pausedUntil: Date?
-    @Published public var protectedDays: Int = 12
-    @Published public var trustedNetworks: [TrustedNetwork] = [TrustedNetwork(ssid: "Home_WiFi")]
-    @Published public var splitApps: [AppEntry] = AppEntry.demo
-    @Published public var speedHistory: [SpeedTestResult] = []
-    @Published public var schedules: [ScheduleRule] = ScheduleRule.demo
-    @Published public var smartRules: [SmartRule] = SmartRule.demo
+    // New features: multi-hop, favorites/recents, gamification, trusted nets, split tunnel, speed history
+    // These persist on change so user choices survive relaunch (`bitaps.*` keys, loaded in loadPersisted).
+    @Published public var multiHop = MultiHop() { didSet { saveState(multiHop, "bitaps.multihop") } }
+    @Published public var favorites: Set<String> = [] { didSet { saveState(Array(favorites), "bitaps.favorites") } }
+    @Published public var recents: [String] = [] { didSet { saveState(recents, "bitaps.recents") } }
+    /// Real protection streak — consecutive days with at least one connection.
+    @Published public var protectedDays: Int = 0
+    private var connectionDays: Set<String> = [] { didSet { saveState(Array(connectionDays), "bitaps.conndays") } }
+    @Published public var trustedNetworks: [TrustedNetwork] = [] { didSet { saveState(trustedNetworks, "bitaps.trusted") } }
+    @Published public var splitApps: [AppEntry] = AppEntry.demo { didSet { saveState(splitApps, "bitaps.split") } }
+    @Published public var speedHistory: [SpeedTestResult] = [] { didSet { saveState(speedHistory, "bitaps.speedhist") } }
+    @Published public var schedules: [ScheduleRule] = [] { didSet { saveState(schedules, "bitaps.schedules") } }
+    @Published public var smartRules: [SmartRule] = [] { didSet { saveState(smartRules, "bitaps.smartrules") } }
     @Published public var leak: LeakReport?
     @Published public var isCheckingLeak = false
 
@@ -63,19 +65,34 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
     @Published public var logs: [LogEntry] = []
     @Published public var speedTestResult: SpeedTestResult?
     @Published public var isSpeedTesting = false
-    /// Rolling window of recent download/upload speeds for the live sparkline.
-    @Published public var recentDown: [Double] = Array(repeating: 0, count: 40)
-    @Published public var recentUp: [Double] = Array(repeating: 0, count: 40)
     private let speedTester = SpeedTestService()
 
     // UI feedback
-    @Published public var errorMessage: String?
+    @Published public var errorMessage: String?         // drives the global alert
+    @Published public var importError: String?          // inline-only (import screen)
 
     private let api: BitAPI
     private var tunnel: VPNTunnel
     private let pinger = PingService()
     private var clockCancellable: AnyCancellable?
     @Published public var elapsed: TimeInterval = 0
+
+    /// Set by the app at launch so the store can gate notifications on the
+    /// user's Settings toggles.
+    public weak var settings: Settings?
+    /// Distinguishes a user-tapped disconnect from an unexpected drop.
+    private var userInitiatedDisconnect = false
+    /// One-shot guard so the "data limit" alert fires at most once per session.
+    private var dataAlertSent = false
+    /// Minute-of-epoch of the last schedule evaluation (avoids double-firing).
+    private var lastScheduleMinute = -1
+    /// Day-key of the last streak recompute (refresh streak across midnight).
+    private var lastStreakDay = ""
+    /// >0 while one or more intentional server switches are in flight
+    /// (suppresses the "dropped" warning). A counter so overlapping switches
+    /// don't clear suppression for each other.
+    private var reconnectDepth = 0
+    private var isReconnecting: Bool { reconnectDepth > 0 }
 
     /// All servers flattened, available first.
     public var allServers: [Server] { serverGroups.flatMap(\.servers) }
@@ -92,6 +109,8 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
     }
 
     private func loadPersisted() {
+        isLoadingState = true
+        defer { isLoadingState = false }
         let d = UserDefaults.standard
         lifetimeDown = Int64(d.integer(forKey: "bitaps.lifeDown"))
         lifetimeUp = Int64(d.integer(forKey: "bitaps.lifeUp"))
@@ -103,6 +122,38 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
            let log = try? JSONDecoder().decode([TrafficLogEntry].self, from: data) {
             trafficLog = log
         }
+        // User state — load only if previously saved (else keep demo defaults).
+        loadState(&multiHop, "bitaps.multihop")
+        if let f: [String] = decodeState("bitaps.favorites") { favorites = Set(f) }
+        loadState(&recents, "bitaps.recents")
+        loadState(&trustedNetworks, "bitaps.trusted")
+        loadState(&splitApps, "bitaps.split")
+        loadState(&speedHistory, "bitaps.speedhist")
+        loadState(&schedules, "bitaps.schedules")
+        loadState(&smartRules, "bitaps.smartrules")
+        if let days: [String] = decodeState("bitaps.conndays") {
+            connectionDays = Set(days)
+            protectedDays = Self.streak(connectionDays)
+        }
+    }
+
+    /// True while loadPersisted is assigning, so didSet observers don't re-save.
+    private var isLoadingState = false
+
+    /// Encode any Codable user-state value to UserDefaults under `key`.
+    private func saveState<T: Encodable>(_ value: T, _ key: String) {
+        guard !isLoadingState else { return }   // skip the redundant write on load
+        if let data = try? JSONEncoder().encode(value) {
+            UserDefaults.standard.set(data, forKey: key)
+        }
+    }
+    /// Decode a stored value (nil if absent/corrupt) without overwriting on miss.
+    private func decodeState<T: Decodable>(_ key: String) -> T? {
+        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
+    }
+    private func loadState<T: Decodable>(_ target: inout T, _ key: String) {
+        if let v: T = decodeState(key) { target = v }
     }
 
     private func persistConfigs() {
@@ -117,6 +168,11 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
             UserDefaults.standard.set(data, forKey: "bitaps.log")
         }
     }
+
+    /// Flush lifetime traffic + the (possibly still-open) session log now. Call
+    /// when backgrounding so an OS-kill of an always-on tunnel doesn't lose the
+    /// session's accumulated bytes.
+    public func persistSession() { persistLog() }
 
     // MARK: - Bootstrap
 
@@ -133,7 +189,18 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
         async let sub = try? await api.fetchSubscription()
         async let devs = try? await api.fetchDevices()
         let (g, p, s, d) = await (groups, plansList, sub, devs)
-        if let g { serverGroups = g; if selectedServer == nil { selectedServer = firstAvailable(in: g) } }
+        if let g {
+            serverGroups = g
+            if selectedServer == nil { selectedServer = firstAvailable(in: g) }
+            // Derive infra status from the REAL catalog (no more fake demo numbers).
+            let all = g.flatMap(\.servers)
+            let online = all.filter(\.available)
+            infra = InfraStatus(serversOnline: online.count,
+                                totalServers: all.count,
+                                locations: Set(online.map(\.city)).count,
+                                uptimePct: infra.uptimePct,
+                                activeUsers: infra.activeUsers)
+        }
         if let p { plans = p }
         if let s { subscription = s }
         if let d { devices = d }
@@ -150,9 +217,36 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
     }
 
     public func sendSupport(_ message: String) async -> Bool {
-        guard !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        do { try await api.sendSupport(message: message); return true }
-        catch { errorMessage = error.localizedDescription; return false }
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        // Реальная доставка в Telegram админу (@bitapssupport) + таблицу support_messages
+        // через публичную функцию notify. Прямой HTTP — работает и в demo-режиме,
+        // не зависит от useSupabase (раньше MockAPI молча выбрасывал сообщение).
+        guard let url = URL(string: "https://bjkozsukvifkxriojxrz.supabase.co/functions/v1/notify") else { return false }
+        var name = user?.displayName ?? ""
+        if let tg = user?.telegramHandle, !tg.isEmpty { name += name.isEmpty ? tg : " (\(tg))" }
+        let payload: [String: Any] = [
+            "type": "support",
+            "name": name,
+            "email": user?.email ?? "",
+            "message": trimmed,
+            "source": "приложение"
+        ]
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("sb_publishable_X2CJWgjqeZtbNelAri9ofw_trbfWF9Z", forHTTPHeaderField: "apikey")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        do {
+            let (_, resp) = try await URLSession.shared.data(for: req)
+            let ok = (resp as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+            if ok { addLog(.success, "Сообщение отправлено в поддержку"); return true }
+            errorMessage = "Не удалось отправить сообщение. Попробуйте позже или напишите в Telegram."
+            return false
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 
     private func firstAvailable(in groups: [ServerGroup]) -> Server? {
@@ -166,10 +260,22 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
         await refreshAll()
     }
 
-    public func loginWithTelegram() async {
-        // In the real flow the bot returns a token via deep-link callback.
+    /// Email sign-in: signs in and adopts the entered address as the identity
+    /// (instead of a hardcoded user). Real OTP arrives with the live backend.
+    public func loginEmail(_ email: String) async {
+        await loginDemo()
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            let name = trimmed.contains("@") ? String(trimmed.prefix(while: { $0 != "@" })) : trimmed
+            user = User(id: "email-\(trimmed)", displayName: name, email: trimmed, isDemo: true)
+        }
+    }
+
+    /// `payload` = the signed Telegram auth JSON from the native login sheet (or
+    /// "demo-token" for the mock backend, which ignores it).
+    public func loginWithTelegram(payload: String = "demo-token") async {
         do {
-            let u = try await api.loginWithTelegram(token: "demo-token")
+            let u = try await api.loginWithTelegram(token: payload)
             user = u; isLoggedIn = true
             await refreshAll()
         } catch {
@@ -195,6 +301,7 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
 
     public func toggleConnection() {
         Task {
+            if status == .disconnecting { return }   // already tearing down — ignore taps
             if status.isActive || status == .connecting {
                 await disconnect()
             } else {
@@ -211,15 +318,28 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
             errorMessage = AppError.subscriptionExpired.errorDescription; return
         }
         selectedServer = server
+        userInitiatedDisconnect = false
+        dataAlertSent = false
         do {
+            // recents / streak are recorded on the actual `.connected` transition
+            // (see tunnel(_:didChange:)), so it works for both the synchronous mock
+            // and the real async tunnel whose connect() returns while .connecting.
             try await tunnel.connect(to: server)
-            pushRecent(server.id)
         }
         catch { errorMessage = (error as? AppError)?.errorDescription ?? error.localizedDescription }
     }
 
     public func disconnect() async {
+        userInitiatedDisconnect = true
         await tunnel.disconnect()
+    }
+
+    /// (Re)schedule the subscription-expiry reminder based on the toggles.
+    public func refreshExpiryNotification() {
+        NotificationService.cancel("bitaps.expiry")
+        guard settings?.notifications == true, settings?.notifyExpiry == true,
+              let expires = subscription?.expires else { return }
+        NotificationService.scheduleExpiry(at: expires)
     }
 
     public func select(_ server: Server) {
@@ -240,9 +360,21 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
     }
 
     private func reconnect(to server: Server) async {
+        reconnectDepth += 1
+        defer { reconnectDepth -= 1 }
         await tunnel.disconnect()
         try? await Task.sleep(nanoseconds: 300_000_000)
         await connect()
+    }
+
+    /// Connect using an imported BYO profile (synthesizes a server for it).
+    public func connect(using cfg: ImportedConfig) {
+        let s = Server(id: "cfg-\(cfg.id)", countryCode: "XX",
+                       countryName: NSLocalizedString("Свой профиль", comment: ""),
+                       city: cfg.name, flag: "🔧", pingMs: 0, loadPct: 0,
+                       proto: cfg.proto, config: cfg.raw)
+        addLog(.info, "Профиль: \(cfg.name)")
+        connectTo(s)
     }
 
     // MARK: - Ping & auto-fastest
@@ -278,9 +410,10 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
     @discardableResult
     public func addConfig(from text: String, source: ConfigSource) -> Bool {
         guard let cfg = ImportedConfig.parse(text, source: source) else {
-            errorMessage = "Не распознал конфиг. Поддерживаются vless://, vmess://, trojan://, ss://, hysteria2:// и ссылки на подписку."
+            importError = "Не распознал конфиг. Поддерживаются vless://, vmess://, trojan://, ss://, hysteria2:// и ссылки на подписку."
             return false
         }
+        importError = nil
         importedConfigs.insert(cfg, at: 0)
         persistConfigs()
         return true
@@ -300,27 +433,12 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
     public var favoriteServers: [Server] { allServers.filter { favorites.contains($0.id) } }
     public var recentServers: [Server] { recents.compactMap { id in allServers.first { $0.id == id } } }
     private func pushRecent(_ id: String) {
+        guard !id.hasPrefix("cfg-") else { return }   // imported profiles aren't catalog servers
         recents.removeAll { $0 == id }
         recents.insert(id, at: 0)
         if recents.count > 5 { recents.removeLast(recents.count - 5) }
     }
 
-    // MARK: - Pause
-
-    public var isPaused: Bool {
-        guard let until = pausedUntil else { return false }
-        return until > Date()
-    }
-    public func pause(minutes: Int) {
-        pausedUntil = Date().addingTimeInterval(Double(minutes) * 60)
-        addLog(.warn, "VPN на паузе \(minutes) мин")
-        Task { await disconnect() }
-    }
-    public func resume() {
-        pausedUntil = nil
-        addLog(.info, "Пауза снята")
-        Task { await connect() }
-    }
 
     // MARK: - Use-case mode / multi-hop
 
@@ -381,11 +499,37 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
         leak = nil
         addLog(.info, "Проверка утечек…")
         defer { isCheckingLeak = false }
-        try? await Task.sleep(nanoseconds: 1_400_000_000)
-        let r = isConnected ? LeakReport.demoProtected : LeakReport.demoExposed
+        let r = await Self.fetchLeakReport(connected: isConnected)
         leak = r
         addLog(r.allSecure ? .success : .warn,
                r.allSecure ? "Утечек нет · IP скрыт" : "Внимание: возможны утечки — подключите VPN")
+    }
+
+    /// Real leak check: fetches the actual public IP / geo / ISP. When the tunnel
+    /// is up, DNS + traffic egress through it, so the IP is the node's.
+    private static func fetchLeakReport(connected: Bool) async -> LeakReport {
+        struct Conn: Decodable { let isp: String?; let org: String? }
+        struct Geo: Decodable { let ip: String?; let city: String?; let country: String?; let country_code: String?; let connection: Conn? }
+        var ip = "—", city = "—", country = "—", isp = "—"
+        if let url = URL(string: "https://ipwho.is/"),
+           let (data, _) = try? await URLSession.shared.data(from: url),
+           let g = try? JSONDecoder().decode(Geo.self, from: data) {
+            ip = g.ip ?? ip
+            city = g.city ?? city
+            isp = g.connection?.isp ?? g.connection?.org ?? isp
+            let flag = flagEmoji(g.country_code)
+            country = [flag, g.country].compactMap { $0 }.joined(separator: " ").trimmingCharacters(in: .whitespaces)
+            if country.isEmpty { country = "—" }
+        }
+        // VPN up ⇒ traffic + DNS routed through the tunnel.
+        return LeakReport(ip: ip, country: country, city: city, isp: isp,
+                          dnsSecure: connected, webrtcSecure: connected, ipv6Secure: connected)
+    }
+
+    private static func flagEmoji(_ code: String?) -> String {
+        guard let code, code.count == 2 else { return "🌐" }
+        return code.uppercased().unicodeScalars
+            .compactMap { UnicodeScalar(127397 + $0.value).map(String.init) }.joined()
     }
 
     // MARK: - Diagnostics log
@@ -411,12 +555,6 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
         addLog(.success, String(format: "Спид-тест: ↓%.0f / ↑%.0f Mbps · %d ms", r.downMbps, r.upMbps, r.pingMs))
     }
 
-    // MARK: - Subscription
-
-    public func renew(_ plan: Plan) async {
-        do { subscription = try await api.renew(plan: plan) }
-        catch { errorMessage = error.localizedDescription }
-    }
 
     public func removeDevice(_ device: Device) async {
         do { try await api.removeDevice(device.id); devices.removeAll { $0.id == device.id } }
@@ -434,7 +572,7 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
 
         // Live Activity (Dynamic Island / Lock Screen) — no-op off iOS.
         if status == .connecting, was == .disconnected {
-            LiveActivityController.shared.start(city: selectedServer?.city ?? "—",
+            LiveActivityController.shared.start(city: NSLocalizedString(selectedServer?.city ?? "—", comment: ""),
                                                 flag: selectedServer?.flag ?? "🌐")
         }
         LiveActivityController.shared.update(statusText: status.title, connected: status.isActive,
@@ -448,19 +586,31 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
             addLog(.info, "Запуск ядра sing-box…")
         case .connected where was != .connected:
             addLog(.success, "Туннель установлен · IP \(stats.ip ?? "—")")
-        case .disconnected where was != .disconnected && was != .connecting:
+        case .disconnected where was != .disconnected && was != .connecting && !isReconnecting:
             addLog(.warn, "Соединение разорвано")
+            // Notify only on an UNEXPECTED drop (not a user tap), if enabled.
+            if !userInitiatedDisconnect, was == .connected,
+               settings?.notifications == true, settings?.notifyDrop == true {
+                NotificationService.post(
+                    title: NSLocalizedString("VPN отключился", comment: ""),
+                    body: NSLocalizedString("Соединение разорвано — трафик не защищён.", comment: ""),
+                    id: "bitaps.drop")
+            }
         default: break
         }
+        if status == .disconnected { userInitiatedDisconnect = false }
 
         if status == .connected, was != .connected {
             // open a new log entry
             prevDown = 0; prevUp = 0
-            recentDown = Array(repeating: 0, count: 40)
-            recentUp = Array(repeating: 0, count: 40)
             let entry = TrafficLogEntry(serverCity: selectedServer?.city ?? "—", start: Date())
             activeLogID = entry.id
             trafficLog.insert(entry, at: 0)
+            if trafficLog.count > 100 { trafficLog.removeLast(trafficLog.count - 100) }  // cap in-memory growth
+            // Record recents + protection streak HERE (on the real .connected edge),
+            // so it works for the async real tunnel too — not only the sync mock.
+            if let id = selectedServer?.id { pushRecent(id) }
+            recordConnectionToday()
         } else if status == .disconnected, let id = activeLogID {
             if let i = trafficLog.firstIndex(where: { $0.id == id }) {
                 trafficLog[i].end = Date()
@@ -480,12 +630,18 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
         prevDown = stats.totalDown
         prevUp = stats.totalUp
         self.stats = stats
-        // Feed the live chart (drop oldest, append newest).
-        recentDown.removeFirst(); recentDown.append(stats.downloadBps)
-        recentUp.removeFirst(); recentUp.append(stats.uploadBps)
         if let id = activeLogID, let i = trafficLog.firstIndex(where: { $0.id == id }) {
             trafficLog[i].bytesDown = stats.totalDown
             trafficLog[i].bytesUp = stats.totalUp
+        }
+        // Heavy-usage alert (once per session, gated on the toggle).
+        if !dataAlertSent, settings?.notifications == true, settings?.notifyData == true,
+           stats.totalDown + stats.totalUp > 1_073_741_824 {
+            dataAlertSent = true
+            NotificationService.post(
+                title: NSLocalizedString("Большой расход трафика", comment: ""),
+                body: NSLocalizedString("За эту сессию прошло больше 1 ГБ.", comment: ""),
+                id: "bitaps.data")
         }
         if status.isActive {
             LiveActivityController.shared.update(statusText: status.title, connected: true,
@@ -500,12 +656,96 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
         clockCancellable = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
             .sink { [weak self] _ in
                 guard let self else { return }
+                let now = Date()
                 if let since = self.stats.connectedSince, self.status.isActive {
-                    self.elapsed = Date().timeIntervalSince(since)
+                    self.elapsed = now.timeIntervalSince(since)
                 } else {
                     self.elapsed = 0
                 }
+                // Run the schedule engine once per minute (only once logged in, so
+                // we don't "consume" the minute before the user has signed in).
+                let minute = Int(now.timeIntervalSince1970 / 60)
+                if minute != self.lastScheduleMinute, self.isLoggedIn {
+                    self.lastScheduleMinute = minute
+                    self.evaluateSchedules(now)
+                }
+                // Keep the protection streak fresh across a midnight crossing while
+                // the app is open (recompute when the day changes).
+                let dayKey = Self.dayKey(now)
+                if dayKey != self.lastStreakDay {
+                    self.lastStreakDay = dayKey
+                    self.protectedDays = Self.streak(self.connectionDays, now: now)
+                }
             }
+    }
+
+    // MARK: - Schedule engine (rules actually fire now)
+
+    /// Fires any enabled schedule whose day+time matches `now`.
+    private func evaluateSchedules(_ now: Date) {
+        guard isLoggedIn else { return }   // don't act over onboarding/login
+        let c = Calendar.current.dateComponents([.hour, .minute, .weekday], from: now)
+        guard let h = c.hour, let m = c.minute, let wd = c.weekday else { return }
+        let iso = (wd + 5) % 7 + 1   // Calendar 1=Sun…7=Sat → ISO 1=Mon…7=Sun
+        for rule in schedules where rule.enabled && rule.hour == h && rule.minute == m && rule.days.contains(iso) {
+            switch rule.action {
+            case .connect where !isConnected && status != .connecting && status != .disconnecting:
+                addLog(.info, "Расписание: подключение")
+                Task { await connect() }
+            case .disconnect where isConnected:
+                addLog(.info, "Расписание: отключение")
+                Task { await disconnect() }
+            default:
+                break
+            }
+        }
+    }
+
+    // MARK: - Protection streak (real)
+
+    private static func dayKey(_ date: Date) -> String {
+        let c = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return "\(c.year ?? 0)-\(c.month ?? 0)-\(c.day ?? 0)"
+    }
+
+    /// Count of consecutive days with a connection. Anchors on today if today
+    /// already has one, otherwise on yesterday — so the streak isn't shown as 0
+    /// in the morning before the day's first connect.
+    private static func streak(_ days: Set<String>, now: Date = Date()) -> Int {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: now)
+        var day = days.contains(dayKey(today))
+            ? today
+            : (cal.date(byAdding: .day, value: -1, to: today) ?? today)
+        var count = 0
+        while days.contains(dayKey(day)) {
+            count += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { break }
+            day = prev
+        }
+        return count
+    }
+
+    /// Mark today as protected and recompute the streak. Called on every connect.
+    private func recordConnectionToday() {
+        if connectionDays.insert(Self.dayKey(Date())).inserted {
+            pruneConnectionDays()
+            protectedDays = Self.streak(connectionDays)
+            lastStreakDay = Self.dayKey(Date())
+        }
+    }
+
+    /// Keep only the most recent `keep` day-stamps so the set can't grow forever.
+    private func pruneConnectionDays(keep: Int = 120) {
+        guard connectionDays.count > keep else { return }
+        let cal = Calendar.current
+        let dated = connectionDays.compactMap { key -> (String, Date)? in
+            let p = key.split(separator: "-").compactMap { Int($0) }
+            guard p.count == 3,
+                  let d = cal.date(from: DateComponents(year: p[0], month: p[1], day: p[2])) else { return nil }
+            return (key, d)
+        }.sorted { $0.1 > $1.1 }
+        connectionDays = Set(dated.prefix(keep).map(\.0))
     }
 
     public var sessionTime: String { Fmt.duration(elapsed) }
@@ -533,7 +773,6 @@ public final class Settings: ObservableObject {
     @Published public var notifyData: Bool { didSet { d.set(notifyData, forKey: "bitaps.ntfdata") } }
     @Published public var routingMode: RoutingMode { didSet { d.set(routingMode.rawValue, forKey: "bitaps.routing") } }
     @Published public var connectionMode: ConnectionMode { didSet { d.set(connectionMode.rawValue, forKey: "bitaps.connmode") } }
-    @Published public var autoConnectFastest: Bool { didSet { d.set(autoConnectFastest, forKey: "bitaps.autofastest") } }
     @Published public var proto: TunnelProtocol { didSet { d.set(proto.rawValue, forKey: "bitaps.protocol") } }
 
     // Advanced network (Hiddify parity)
@@ -549,9 +788,27 @@ public final class Settings: ObservableObject {
     @Published public var autoConnect: Bool { didSet { d.set(autoConnect, forKey: "bitaps.autoconnect") } }
     @Published public var killSwitch: Bool { didSet { d.set(killSwitch, forKey: "bitaps.killswitch") } }
     @Published public var connectOnLaunch: Bool { didSet { d.set(connectOnLaunch, forKey: "bitaps.connectOnLaunch") } }
-    @Published public var notifications: Bool { didSet { d.set(notifications, forKey: "bitaps.notifications") } }
-    @Published public var dns: String { didSet { d.set(dns, forKey: "bitaps.dns") } }
-    @Published public var language: String { didSet { d.set(language, forKey: "bitaps.language") } }
+    /// Hides power-user surfaces (advanced network, smart rules, split tunnel,
+    /// trusted nets, import config, schedule, protocol, multi-hop) when off.
+    @Published public var expertMode: Bool { didSet { d.set(expertMode, forKey: "bitaps.expert") } }
+    @Published public var notifications: Bool {
+        didSet {
+            d.set(notifications, forKey: "bitaps.notifications")
+            if notifications { NotificationService.requestAuthorization() }  // ask OS permission
+        }
+    }
+    @Published public var language: String {
+        didSet {
+            d.set(language, forKey: "bitaps.language")
+            // Persist the choice so it also sticks across launches / system contexts.
+            d.set([localeIdentifier], forKey: "AppleLanguages")
+            // Point Bundle.main at the chosen .lproj so every Text re-localizes live.
+            AppLanguage.apply(localeIdentifier)
+        }
+    }
+
+    /// BCP-47 code that drives `\.locale` so every `Text(...)` re-localizes live.
+    public var localeIdentifier: String { language == "English" ? "en" : "ru" }
 
     public init() {
         let d = UserDefaults.standard
@@ -568,7 +825,6 @@ public final class Settings: ObservableObject {
         notifyData = d.bool(forKey: "bitaps.ntfdata")
         routingMode = RoutingMode(rawValue: d.string(forKey: "bitaps.routing") ?? "") ?? .bypassRu
         connectionMode = ConnectionMode(rawValue: d.string(forKey: "bitaps.connmode") ?? "") ?? .proxy
-        autoConnectFastest = d.bool(forKey: "bitaps.autofastest")
         proto = TunnelProtocol(rawValue: d.string(forKey: "bitaps.protocol") ?? "") ?? .auto
         bypassLAN = d.object(forKey: "bitaps.bypasslan") as? Bool ?? true
         ipv6 = d.bool(forKey: "bitaps.ipv6")
@@ -581,9 +837,10 @@ public final class Settings: ObservableObject {
         domainStrategy = DomainStrategy(rawValue: d.string(forKey: "bitaps.domstrat") ?? "") ?? .preferIPv4
         autoConnect = d.bool(forKey: "bitaps.autoconnect")
         killSwitch = d.object(forKey: "bitaps.killswitch") as? Bool ?? true
-        connectOnLaunch = d.bool(forKey: "bitaps.connectOnLaunch")
+        connectOnLaunch = d.object(forKey: "bitaps.connectOnLaunch") as? Bool ?? true  // on by default — 1-tap protection
+        expertMode = d.bool(forKey: "bitaps.expert")                                   // off by default — clean consumer UI
         notifications = d.object(forKey: "bitaps.notifications") as? Bool ?? true
-        dns = d.string(forKey: "bitaps.dns") ?? "Авто (через VPN)"
         language = d.string(forKey: "bitaps.language") ?? "Русский"
+        AppLanguage.apply(localeIdentifier)   // didSet doesn't fire in init
     }
 }

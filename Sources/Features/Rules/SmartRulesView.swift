@@ -26,11 +26,11 @@ public struct SmartRulesView: View {
                     ForEach(store.smartRules) { rule in
                         BitCard(padding: 12) {
                             HStack(spacing: 12) {
-                                Text(rule.pattern).font(BitFont.mono(13, weight: .medium))
+                                Text(LocalizedStringKey(rule.pattern)).font(BitFont.mono(13, weight: .medium))
                                     .foregroundStyle(BitColor.text).lineLimit(1)
                                 Spacer(minLength: 8)
                                 Button { store.cycleRuleAction(rule) } label: {
-                                    Text(rule.action.label)
+                                    Text(LocalizedStringKey(rule.action.label))
                                         .font(BitFont.mono(11, weight: .semibold))
                                         .padding(.horizontal, 10).padding(.vertical, 6)
                                         .foregroundStyle(Color(hex: rule.action.hex))
@@ -44,6 +44,14 @@ public struct SmartRulesView: View {
                             }
                         }
                     }
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle").font(.system(size: 11))
+                        Text("Правила сохраняются и применятся при подключении через боевое VPN-ядро.")
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(BitFont.mono(11)).foregroundStyle(BitColor.muted)
+                    .padding(.horizontal, 4).padding(.top, 2)
                 }
                 .padding(BitMetric.pad)
                 .frame(maxWidth: 560).frame(maxWidth: .infinity)
@@ -69,7 +77,7 @@ public struct SmartRulesView: View {
                     .textInputAutocapitalization(.never)
                     #endif
                 Picker("Действие", selection: $action) {
-                    ForEach(RuleAction.allCases) { a in Text(a.label).tag(a) }
+                    ForEach(RuleAction.allCases) { a in Text(LocalizedStringKey(a.label)).tag(a) }
                 }
                 .pickerStyle(.segmented).labelsHidden()
                 BitButton("Добавить", icon: "plus", kind: .solid) {

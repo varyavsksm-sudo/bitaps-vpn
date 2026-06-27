@@ -57,10 +57,10 @@ struct MenuBarView: View {
                     if let s = store.selectedServer {
                         Text(s.flag).font(.system(size: 20))
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(s.city)
+                            Text(LocalizedStringKey(s.city))
                                 .font(BitFont.display(15, weight: .semibold))
                                 .foregroundStyle(BitColor.text)
-                            Text(s.countryName)
+                            Text(LocalizedStringKey(s.countryName))
                                 .font(BitFont.mono(11))
                                 .foregroundStyle(BitColor.muted)
                         }
@@ -115,14 +115,14 @@ struct MenuBarView: View {
                     Button {
                         store.select(server)
                     } label: {
-                        Text("\(server.flag)  \(server.city), \(server.countryName) · \(server.pingMs) ms")
+                        Text(verbatim: "\(server.flag)  ") + Text(LocalizedStringKey(server.city)) + Text(verbatim: ", ") + Text(LocalizedStringKey(server.countryName)) + Text(verbatim: " · \(server.pingMs) ms")
                     }
                 }
             } label: {
                 HStack(spacing: 8) {
                     if let s = store.selectedServer {
                         Text(s.flag)
-                        Text("\(s.city), \(s.countryName)")
+                        (Text(LocalizedStringKey(s.city)) + Text(verbatim: ", ") + Text(LocalizedStringKey(s.countryName)))
                             .font(BitFont.display(14, weight: .medium))
                             .foregroundStyle(BitColor.text)
                     } else {

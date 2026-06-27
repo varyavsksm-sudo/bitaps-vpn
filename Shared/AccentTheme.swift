@@ -14,11 +14,11 @@ public enum AccentTheme: String, CaseIterable, Identifiable, Sendable, Codable {
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .sunset:   return "Закат"
-        case .neon:     return "Неон"
-        case .emerald:  return "Изумруд"
-        case .lavender: return "Лаванда"
-        case .crimson:  return "Багровый"
+        case .sunset:   return NSLocalizedString("Закат", comment: "")
+        case .neon:     return NSLocalizedString("Неон", comment: "")
+        case .emerald:  return NSLocalizedString("Изумруд", comment: "")
+        case .lavender: return NSLocalizedString("Лаванда", comment: "")
+        case .crimson:  return NSLocalizedString("Багровый", comment: "")
         }
     }
     /// (main, soft) hex pair.

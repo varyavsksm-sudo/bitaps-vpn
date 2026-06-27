@@ -37,10 +37,13 @@ public final class MockTunnel: VPNTunnel {
         ticker?.cancel(); ticker = nil
         status = .disconnecting
         try? await Task.sleep(nanoseconds: 450_000_000)
+        currentServer = nil
+        // Finalize first (status change closes the traffic-log entry with the real
+        // accumulated bytes and clears activeLogID), THEN zero the live stats so the
+        // reset update can't overwrite the saved totals with 0.
+        status = .disconnected
         stats = .zero
         delegate?.tunnel(self, didUpdate: stats)
-        currentServer = nil
-        status = .disconnected
     }
 
     private func startTicking() {
@@ -70,7 +73,7 @@ public final class MockTunnel: VPNTunnel {
 
     private static func fakeIP(for server: Server) -> String {
         // deterministic-ish per server so it doesn't flicker
-        let h = abs(server.id.hashValue)
+        let h = server.id.hashValue & 0x7fff_ffff
         return "\(85 + h % 60).\(h / 7 % 200).\(h / 13 % 200).\(h / 17 % 200)"
     }
 }

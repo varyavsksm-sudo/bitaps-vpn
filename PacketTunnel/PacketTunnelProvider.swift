@@ -29,6 +29,9 @@ import Foundation
 #if canImport(NetworkExtension)
 import NetworkExtension
 import os.log
+#if canImport(Libbox)
+import Libbox
+#endif
 
 /// Packet-tunnel provider. The system instantiates this class inside the
 /// extension process when the user (or the app, via NETunnelProviderManager)
@@ -46,14 +49,16 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         static let dnsServers           = ["1.1.1.1", "1.0.0.1"]
     }
 
-    /// Handle to the real engine instance once Libbox is linked.
-    /// Typed as `Any?` so this file compiles with no extra dependency.
-    /// e.g. once linked:  private var boxService: BoxService?
-    private var boxService: Any?
-
     /// Raw config + chosen server passed from the container app.
     private var configJSON: String?
     private var serverID: String?
+
+    #if canImport(Libbox)
+    private lazy var platformInterface = ExtensionPlatformInterface(self)
+    private var commandServer: LibboxCommandServer?
+    #else
+    private var boxService: Any?   // mock marker (nil => mock mode)
+    #endif
 
     // MARK: - Start
 
@@ -78,49 +83,70 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                    configJSON?.utf8.count ?? 0, serverID ?? "—")
         }
 
-        // 2. Describe the virtual interface to the OS.
-        let settings = makeTunnelSettings()
-
-        // 3. Bring the interface up. When this completes successfully the
-        //    system marks the VPN as "Connected".
-        setTunnelNetworkSettings(settings) { [weak self] error in
-            guard let self else { return }
-            if let error {
-                os_log("setTunnelNetworkSettings failed: %{public}@",
-                       log: self.log, type: .error, error.localizedDescription)
-                completionHandler(error)
-                return
-            }
-
-            // 4. Start the real packet engine.
-            //
-            // TODO: start libbox (sing-box) instance with the provided config.
-            //       Once Libbox.xcframework is linked, replace this block with:
-            //
-            //         guard let json = self.configJSON else { … }
-            //         do {
-            //             let service = try BoxService(config: json,
-            //                                          packetFlow: self.packetFlow)
-            //             try service.start()
-            //             self.boxService = service
-            //         } catch {
-            //             completionHandler(error); return
-            //         }
-            //
-            //       BoxService is responsible for reading packets from
-            //       self.packetFlow.readPackets(...) and writing decrypted
-            //       replies back via self.packetFlow.writePackets(...).
-            //
-            // Until then we run the MOCK path: the interface is up, the OS
-            // shows "VPN on", but no engine is attached.
-            self.startMockEngine()
-
-            os_log("tunnel started (mock=%{public}@)",
-                   log: self.log, type: .info,
-                   self.boxService == nil ? "yes" : "no")
+        #if canImport(Libbox)
+        // Real engine: libbox parses the config and, when it brings up its tun
+        // inbound, calls our platform interface's openTun — which sets the
+        // tunnel network settings and hands sing-box the tun fd.
+        do {
+            try startLibbox()
+            os_log("tunnel started (engine=libbox)", log: log, type: .info)
             completionHandler(nil)
+        } catch {
+            os_log("startLibbox failed: %{public}@", log: log, type: .error, error.localizedDescription)
+            completionHandler(error)
         }
+        #else
+        // НЕТ движка (Libbox.xcframework не слинкован в этой сборке). НЕ поднимаем
+        // туннель с дефолтным маршрутом — иначе он перехватит весь трафик и будет его
+        // ронять: ОС покажет «подключено», а интернета нет (blackhole). Честно
+        // отказываемся, чтобы трафик пользователя не уходил в неработающий TUN.
+        os_log("startTunnel: sing-box (Libbox) не слинкован — отказ, чтобы не блокировать трафик",
+               log: log, type: .error)
+        let noEngine = NSError(domain: "app.bitaps.vpn", code: 1, userInfo: [
+            NSLocalizedDescriptionKey: "VPN-движок не собран в этой сборке. Туннель не запущен, чтобы не блокировать интернет."
+        ])
+        completionHandler(noEngine)
+        #endif
     }
+
+    #if canImport(Libbox)
+    /// Set up libbox, start a command server (which drives the box service), and
+    /// load the sing-box config. openTun is invoked by libbox during this call.
+    private func startLibbox() throws {
+        guard let config = configJSON else {
+            throw NSError(domain: "bitaps.PacketTunnel", code: -1,
+                          userInfo: [NSLocalizedDescriptionKey: "missing config"])
+        }
+        let base = NSTemporaryDirectory().appending("bitaps")
+        let work = base + "/work", temp = base + "/temp"
+        for p in [base, work, temp] {
+            try? FileManager.default.createDirectory(atPath: p, withIntermediateDirectories: true)
+        }
+        let opts = LibboxSetupOptions()
+        opts.basePath = base
+        opts.workingPath = work
+        opts.tempPath = temp
+        opts.logMaxLines = 3000
+        var setupErr: NSError?
+        LibboxSetup(opts, &setupErr)
+        if let setupErr { throw setupErr }
+
+        var serverErr: NSError?
+        guard let server = LibboxNewCommandServer(platformInterface, platformInterface, &serverErr) else {
+            throw serverErr ?? NSError(domain: "bitaps.PacketTunnel", code: -1,
+                                       userInfo: [NSLocalizedDescriptionKey: "create command server failed"])
+        }
+        try server.start()
+        commandServer = server
+        try server.startOrReloadService(config, options: LibboxOverrideOptions())
+    }
+
+    /// Reload the running service (used on a server switch without a full restart).
+    func reloadService() {
+        guard let config = configJSON, let server = commandServer else { return }
+        try? server.startOrReloadService(config, options: LibboxOverrideOptions())
+    }
+    #endif
 
     // MARK: - Stop
 
@@ -128,17 +154,16 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
                             completionHandler: @escaping () -> Void) {
         os_log("stopTunnel: reason=%{public}d", log: log, type: .info, reason.rawValue)
 
-        // TODO: stop libbox — close the sing-box instance and wait for it to
-        //       finish draining, e.g.:
-        //
-        //         if let service = boxService as? BoxService {
-        //             try? service.close()
-        //         }
-        //
+        #if canImport(Libbox)
+        try? commandServer?.closeService()
+        platformInterface.reset()
+        try? commandServer?.close()
+        commandServer = nil
+        #else
         boxService = nil
+        #endif
         configJSON = nil
         serverID = nil
-
         completionHandler()
     }
 
@@ -151,8 +176,11 @@ final class PacketTunnelProvider: NEPacketTunnelProvider {
         let request = String(data: messageData, encoding: .utf8) ?? ""
         os_log("handleAppMessage: %{public}@", log: log, type: .debug, request)
 
-        // TODO: route real commands to libbox (stats query, reconnect, etc.).
+        #if canImport(Libbox)
+        let status = commandServer == nil ? "stopped" : "running"
+        #else
         let status = boxService == nil ? "mock" : "running"
+        #endif
         let reply = "{\"server\":\"\(serverID ?? "")\",\"engine\":\"\(status)\"}"
         completionHandler?(reply.data(using: .utf8))
     }

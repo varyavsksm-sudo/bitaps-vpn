@@ -172,7 +172,7 @@ private struct SlideView: View {
             .opacity(appeared ? 1 : 0)
 
             VStack(spacing: 14) {
-                Text(slide.title)
+                Text(LocalizedStringKey(slide.title))
                     .font(BitFont.display(36, weight: .bold))
                     .foregroundStyle(LinearGradient(
                         colors: [BitColor.accentSoft, BitColor.accent],
@@ -180,7 +180,7 @@ private struct SlideView: View {
                     .bitGlow(BitColor.accent, radius: 24, opacity: 0.4)
                     .multilineTextAlignment(.center)
 
-                Text(slide.subtitle)
+                Text(LocalizedStringKey(slide.subtitle))
                     .font(BitFont.mono(15))
                     .foregroundStyle(BitColor.muted)
                     .multilineTextAlignment(.center)

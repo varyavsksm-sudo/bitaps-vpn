@@ -16,11 +16,11 @@ public enum VPNStatus: String, Equatable, Sendable {
 
     public var title: String {
         switch self {
-        case .disconnected:  return "Отключено"
-        case .connecting:    return "Подключение…"
-        case .connected:     return "Подключено"
-        case .disconnecting: return "Отключение…"
-        case .reasserting:   return "Переподключение…"
+        case .disconnected:  return NSLocalizedString("Отключено", comment: "")
+        case .connecting:    return NSLocalizedString("Подключение…", comment: "")
+        case .connected:     return NSLocalizedString("Подключено", comment: "")
+        case .disconnecting: return NSLocalizedString("Отключение…", comment: "")
+        case .reasserting:   return NSLocalizedString("Переподключение…", comment: "")
         }
     }
 }
@@ -62,7 +62,7 @@ public enum TunnelProtocol: String, Codable, Sendable, CaseIterable, Identifiabl
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .auto:        return "Авто"
+        case .auto:        return NSLocalizedString("Авто", comment: "")
         case .reality:     return "VLESS + Reality"
         case .vmess:       return "VMess"
         case .trojan:      return "Trojan"
@@ -85,16 +85,16 @@ public enum RoutingMode: String, CaseIterable, Identifiable, Sendable, Codable {
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .all:      return "Весь трафик"
-        case .rules:    return "По правилам"
-        case .bypassRu: return "РФ напрямую"
+        case .all:      return NSLocalizedString("Весь трафик", comment: "")
+        case .rules:    return NSLocalizedString("По правилам", comment: "")
+        case .bypassRu: return NSLocalizedString("РФ напрямую", comment: "")
         }
     }
     public var detail: String {
         switch self {
-        case .all:      return "Всё идёт через VPN — максимальная приватность"
-        case .rules:    return "Гибкие правила geosite/geoip"
-        case .bypassRu: return "Зарубежное — через VPN, российские сайты — напрямую (быстрее)"
+        case .all:      return NSLocalizedString("Всё идёт через VPN — максимальная приватность", comment: "")
+        case .rules:    return NSLocalizedString("Гибкие правила geosite/geoip", comment: "")
+        case .bypassRu: return NSLocalizedString("Зарубежное — через VPN, российские сайты — напрямую (быстрее)", comment: "")
         }
     }
     public var systemImage: String {
@@ -112,10 +112,10 @@ public enum ConfigSource: String, Sendable, Codable {
     case link, qr, clipboard, subscription
     public var label: String {
         switch self {
-        case .link:         return "Ссылка"
-        case .qr:           return "QR-код"
-        case .clipboard:    return "Буфер обмена"
-        case .subscription: return "Подписка"
+        case .link:         return NSLocalizedString("Ссылка", comment: "")
+        case .qr:           return NSLocalizedString("QR-код", comment: "")
+        case .clipboard:    return NSLocalizedString("Буфер обмена", comment: "")
+        case .subscription: return NSLocalizedString("Подписка", comment: "")
         }
     }
 }
@@ -152,7 +152,7 @@ public struct ImportedConfig: Identifiable, Equatable, Sendable, Codable {
         // name from #fragment if present
         let frag = s.components(separatedBy: "#").dropFirst().joined(separator: "#")
         let name = frag.removingPercentEncoding?.nilIfEmpty
-            ?? (scheme == "http" || scheme == "https" ? "Подписка" : proto.label)
+            ?? (scheme == "http" || scheme == "https" ? NSLocalizedString("Подписка", comment: "") : proto.label)
         let src: ConfigSource = (scheme == "http" || scheme == "https") ? .subscription : source
         return ImportedConfig(name: name, proto: proto, raw: s, source: src)
     }
@@ -184,11 +184,11 @@ public enum ConnectButtonStyle: String, CaseIterable, Identifiable, Sendable, Co
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .ring:  return "Кольцо"
-        case .gear:  return "Шестерёнка"
-        case .orb:   return "Сфера"
-        case .pulse: return "Пульс"
-        case .arc:   return "Дуга"
+        case .ring:  return NSLocalizedString("Кольцо", comment: "")
+        case .gear:  return NSLocalizedString("Шестерёнка", comment: "")
+        case .orb:   return NSLocalizedString("Сфера", comment: "")
+        case .pulse: return NSLocalizedString("Пульс", comment: "")
+        case .arc:   return NSLocalizedString("Дуга", comment: "")
         }
     }
 }
@@ -200,8 +200,8 @@ public enum UseCaseMode: String, CaseIterable, Identifiable, Sendable, Codable {
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .auto: return "Авто"; case .streaming: return "Стриминг"
-        case .gaming: return "Игры"; case .privacy: return "Приватность"; case .work: return "Работа"
+        case .auto: return NSLocalizedString("Авто", comment: ""); case .streaming: return NSLocalizedString("Стриминг", comment: "")
+        case .gaming: return NSLocalizedString("Игры", comment: ""); case .privacy: return NSLocalizedString("Приватность", comment: ""); case .work: return NSLocalizedString("Работа", comment: "")
         }
     }
     public var icon: String {
@@ -212,11 +212,11 @@ public enum UseCaseMode: String, CaseIterable, Identifiable, Sendable, Codable {
     }
     public var tagline: String {
         switch self {
-        case .auto: return "Сами подберём лучший узел и правила"
-        case .streaming: return "4K без буферизации, разблок сервисов"
-        case .gaming: return "Минимальный пинг, без потерь пакетов"
-        case .privacy: return "Максимум шифрования и анонимности"
-        case .work: return "Стабильный канал, тихий фон"
+        case .auto: return NSLocalizedString("Сами подберём лучший узел и правила", comment: "")
+        case .streaming: return NSLocalizedString("4K без буферизации, разблок сервисов", comment: "")
+        case .gaming: return NSLocalizedString("Минимальный пинг, без потерь пакетов", comment: "")
+        case .privacy: return NSLocalizedString("Максимум шифрования и анонимности", comment: "")
+        case .work: return NSLocalizedString("Стабильный канал, тихий фон", comment: "")
         }
     }
     public var chipIndex: Int {
@@ -248,12 +248,12 @@ public struct Achievement: Identifiable, Equatable, Sendable {
     }
     public static func catalog(protectedDays: Int, totalGB: Double) -> [Achievement] {
         [
-            Achievement(id: "first", icon: "bolt.fill", title: "Первое подключение", detail: "Запустил bitaps", unlocked: true),
-            Achievement(id: "week", icon: "flame.fill", title: "Неделя под защитой", detail: "7 дней подряд", unlocked: protectedDays >= 7),
-            Achievement(id: "month", icon: "crown.fill", title: "Месяц без утечек", detail: "30 дней подряд", unlocked: protectedDays >= 30),
-            Achievement(id: "gb10", icon: "arrow.down.circle.fill", title: "10 ГБ под щитом", detail: "Защищён трафик", unlocked: totalGB >= 10),
-            Achievement(id: "gb100", icon: "shield.lefthalf.filled", title: "100 ГБ под щитом", detail: "Серьёзный объём", unlocked: totalGB >= 100),
-            Achievement(id: "friends", icon: "person.2.fill", title: "Позвал друзей", detail: "Пригласил 3+", unlocked: false)
+            Achievement(id: "first", icon: "bolt.fill", title: NSLocalizedString("Первое подключение", comment: ""), detail: NSLocalizedString("Запустил bitaps", comment: ""), unlocked: true),
+            Achievement(id: "week", icon: "flame.fill", title: NSLocalizedString("Неделя под защитой", comment: ""), detail: NSLocalizedString("7 дней подряд", comment: ""), unlocked: protectedDays >= 7),
+            Achievement(id: "month", icon: "crown.fill", title: NSLocalizedString("Месяц без утечек", comment: ""), detail: NSLocalizedString("30 дней подряд", comment: ""), unlocked: protectedDays >= 30),
+            Achievement(id: "gb10", icon: "arrow.down.circle.fill", title: NSLocalizedString("10 ГБ под щитом", comment: ""), detail: NSLocalizedString("Защищён трафик", comment: ""), unlocked: totalGB >= 10),
+            Achievement(id: "gb100", icon: "shield.lefthalf.filled", title: NSLocalizedString("100 ГБ под щитом", comment: ""), detail: NSLocalizedString("Серьёзный объём", comment: ""), unlocked: totalGB >= 100),
+            Achievement(id: "friends", icon: "person.2.fill", title: NSLocalizedString("Позвал друзей", comment: ""), detail: NSLocalizedString("Пригласил 3+", comment: ""), unlocked: false)
         ]
     }
 }
@@ -265,8 +265,8 @@ public enum AppIconOption: String, CaseIterable, Identifiable, Sendable, Codable
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .classic: return "Закат"; case .neon: return "Неон"; case .emerald: return "Изумруд"
-        case .lavender: return "Лаванда"; case .crimson: return "Багровый"; case .mono: return "Моно"
+        case .classic: return NSLocalizedString("Закат", comment: ""); case .neon: return NSLocalizedString("Неон", comment: ""); case .emerald: return NSLocalizedString("Изумруд", comment: "")
+        case .lavender: return NSLocalizedString("Лаванда", comment: ""); case .crimson: return NSLocalizedString("Багровый", comment: ""); case .mono: return NSLocalizedString("Моно", comment: "")
         }
     }
     /// nil = primary icon; otherwise the alternate icon name (added in the asset/plist).
@@ -296,12 +296,12 @@ public struct AppEntry: Identifiable, Equatable, Sendable, Codable {
         self.id = id; self.name = name; self.symbol = symbol; self.excluded = excluded
     }
     public static let demo: [AppEntry] = [
-        AppEntry(name: "Сбербанк Онлайн", symbol: "rublesign.circle.fill", excluded: true),
-        AppEntry(name: "Госуслуги", symbol: "building.columns.fill", excluded: true),
+        AppEntry(name: NSLocalizedString("Сбербанк Онлайн", comment: ""), symbol: "rublesign.circle.fill", excluded: true),
+        AppEntry(name: NSLocalizedString("Госуслуги", comment: ""), symbol: "building.columns.fill", excluded: true),
         AppEntry(name: "YouTube", symbol: "play.rectangle.fill"),
         AppEntry(name: "Telegram", symbol: "paperplane.fill"),
         AppEntry(name: "Safari", symbol: "safari.fill"),
-        AppEntry(name: "Игры", symbol: "gamecontroller.fill")
+        AppEntry(name: NSLocalizedString("Игры", comment: ""), symbol: "gamecontroller.fill")
     ]
 }
 
@@ -310,7 +310,7 @@ public struct AppEntry: Identifiable, Equatable, Sendable, Codable {
 public enum ScheduleAction: String, CaseIterable, Identifiable, Sendable, Codable {
     case connect, disconnect
     public var id: String { rawValue }
-    public var label: String { self == .connect ? "Подключить" : "Отключить" }
+    public var label: String { self == .connect ? NSLocalizedString("Подключить", comment: "") : NSLocalizedString("Отключить", comment: "") }
     public var icon: String { self == .connect ? "power" : "power.dotted" }
 }
 
@@ -328,10 +328,10 @@ public struct ScheduleRule: Identifiable, Equatable, Sendable, Codable {
     }
     public var timeString: String { String(format: "%02d:%02d", hour, minute) }
     public var daysString: String {
-        if days.count == 7 { return "Каждый день" }
-        if days == [1,2,3,4,5] { return "Будни" }
-        if days == [6,7] { return "Выходные" }
-        let names = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"]
+        if days.count == 7 { return NSLocalizedString("Каждый день", comment: "") }
+        if days == [1,2,3,4,5] { return NSLocalizedString("Будни", comment: "") }
+        if days == [6,7] { return NSLocalizedString("Выходные", comment: "") }
+        let names = [NSLocalizedString("Пн", comment: ""),NSLocalizedString("Вт", comment: ""),NSLocalizedString("Ср", comment: ""),NSLocalizedString("Чт", comment: ""),NSLocalizedString("Пт", comment: ""),NSLocalizedString("Сб", comment: ""),NSLocalizedString("Вс", comment: "")]
         return days.sorted().compactMap { $0 >= 1 && $0 <= 7 ? names[$0-1] : nil }.joined(separator: ", ")
     }
     public static let demo: [ScheduleRule] = [
@@ -346,7 +346,7 @@ public enum RuleAction: String, CaseIterable, Identifiable, Sendable, Codable {
     case viaVPN, direct, block
     public var id: String { rawValue }
     public var label: String {
-        switch self { case .viaVPN: return "Через VPN"; case .direct: return "Напрямую"; case .block: return "Блок" }
+        switch self { case .viaVPN: return NSLocalizedString("Через VPN", comment: ""); case .direct: return NSLocalizedString("Напрямую", comment: ""); case .block: return NSLocalizedString("Блок", comment: "") }
     }
     public var hex: UInt32 {
         switch self { case .viaVPN: return 0xff7a1a; case .direct: return 0x19c8a8; case .block: return 0xff4d6d }
@@ -384,10 +384,10 @@ public struct LeakReport: Equatable, Sendable {
         self.dnsSecure = dnsSecure; self.webrtcSecure = webrtcSecure; self.ipv6Secure = ipv6Secure
     }
     public var allSecure: Bool { dnsSecure && webrtcSecure && ipv6Secure }
-    public static let demoProtected = LeakReport(ip: "185.244.214.10", country: "🇳🇱 Нидерланды", city: "Амстердам",
+    public static let demoProtected = LeakReport(ip: "185.244.214.10", country: NSLocalizedString("🇳🇱 Нидерланды", comment: ""), city: NSLocalizedString("Амстердам", comment: ""),
         isp: "bitaps VPN", dnsSecure: true, webrtcSecure: true, ipv6Secure: true)
-    public static let demoExposed = LeakReport(ip: "95.142.16.7", country: "🇷🇺 Россия", city: "Москва",
-        isp: "Ростелеком", dnsSecure: false, webrtcSecure: true, ipv6Secure: false)
+    public static let demoExposed = LeakReport(ip: "95.142.16.7", country: NSLocalizedString("🇷🇺 Россия", comment: ""), city: NSLocalizedString("Москва", comment: ""),
+        isp: NSLocalizedString("Ростелеком", comment: ""), dnsSecure: false, webrtcSecure: true, ipv6Secure: false)
 }
 
 // MARK: - Accent themes — moved to Shared/AccentTheme.swift (shared with widget)
@@ -418,7 +418,7 @@ public struct LogEntry: Identifiable, Equatable, Sendable {
 
 // MARK: - Speed test
 
-public struct SpeedTestResult: Equatable, Sendable {
+public struct SpeedTestResult: Equatable, Sendable, Codable {
     public var downMbps: Double
     public var upMbps: Double
     public var pingMs: Int
@@ -440,9 +440,9 @@ public enum ConnectionMode: String, CaseIterable, Identifiable, Sendable, Codabl
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .proxy:  return "Умный"
-        case .global: return "Глобальный"
-        case .direct: return "Прямой"
+        case .proxy:  return NSLocalizedString("Умный", comment: "")
+        case .global: return NSLocalizedString("Глобальный", comment: "")
+        case .direct: return NSLocalizedString("Прямой", comment: "")
         }
     }
 }
@@ -457,10 +457,10 @@ public enum DomainStrategy: String, CaseIterable, Identifiable, Sendable, Codabl
     public var id: String { rawValue }
     public var label: String {
         switch self {
-        case .preferIPv4: return "Сначала IPv4"
-        case .preferIPv6: return "Сначала IPv6"
-        case .ipv4Only:   return "Только IPv4"
-        case .ipv6Only:   return "Только IPv6"
+        case .preferIPv4: return NSLocalizedString("Сначала IPv4", comment: "")
+        case .preferIPv6: return NSLocalizedString("Сначала IPv6", comment: "")
+        case .ipv4Only:   return NSLocalizedString("Только IPv4", comment: "")
+        case .ipv6Only:   return NSLocalizedString("Только IPv6", comment: "")
         }
     }
 }
@@ -491,15 +491,18 @@ public struct Server: Identifiable, Equatable, Sendable, Codable {
     public var pingMs: Int
     public var loadPct: Int          // 0…100
     public var premium: Bool
-    public var available: Bool       // false => "скоро"
+    public var available: Bool       // false => NSLocalizedString("скоро", comment: "")
     public var proto: TunnelProtocol
     public var mapX: Double          // 0…1 position on the world map
     public var mapY: Double
+    /// Raw share-link key (vless:// …) for servers that carry their own config —
+    /// the per-user `vpn_key` or an imported profile. nil for catalog servers.
+    public var config: String?
 
     public init(id: String, countryCode: String, countryName: String, city: String,
                 flag: String, pingMs: Int, loadPct: Int, premium: Bool = false,
                 available: Bool = true, proto: TunnelProtocol = .reality,
-                mapX: Double = 0.5, mapY: Double = 0.5) {
+                mapX: Double = 0.5, mapY: Double = 0.5, config: String? = nil) {
         self.id = id
         self.countryCode = countryCode
         self.countryName = countryName
@@ -512,13 +515,14 @@ public struct Server: Identifiable, Equatable, Sendable, Codable {
         self.proto = proto
         self.mapX = mapX
         self.mapY = mapY
+        self.config = config
     }
 
     public var qualityLabel: String {
         switch pingMs {
-        case ..<40:  return "быстрый узел"
-        case ..<90:  return "стабильный"
-        default:     return "далёкий"
+        case ..<40:  return NSLocalizedString("быстрый узел", comment: "")
+        case ..<90:  return NSLocalizedString("стабильный", comment: "")
+        default:     return NSLocalizedString("далёкий", comment: "")
         }
     }
 }
@@ -565,10 +569,10 @@ public enum SubscriptionStatus: String, Sendable, Codable {
 
     public var label: String {
         switch self {
-        case .trial:   return "Пробный период"
-        case .active:  return "Активна"
-        case .expired: return "Истекла"
-        case .none:    return "Нет подписки"
+        case .trial:   return NSLocalizedString("Пробный период", comment: "")
+        case .active:  return NSLocalizedString("Активна", comment: "")
+        case .expired: return NSLocalizedString("Истекла", comment: "")
+        case .none:    return NSLocalizedString("Нет подписки", comment: "")
         }
     }
 }

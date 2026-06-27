@@ -5,7 +5,7 @@ import Foundation
 public enum Fmt {
     /// 1536 → "1.5 КБ", 0 → "0 Б"
     public static func bytes(_ n: Int64) -> String {
-        let units = ["Б", "КБ", "МБ", "ГБ", "ТБ", "ПБ"]
+        let units = [NSLocalizedString("Б", comment: ""), NSLocalizedString("КБ", comment: ""), NSLocalizedString("МБ", comment: ""), NSLocalizedString("ГБ", comment: ""), NSLocalizedString("ТБ", comment: ""), NSLocalizedString("ПБ", comment: "")]
         var x = Double(max(0, n)); var i = 0
         while x >= 1024 && i < units.count - 1 { x /= 1024; i += 1 }
         return i == 0 ? "\(Int(x)) \(units[i])" : String(format: "%.1f %@", x, units[i])
@@ -38,10 +38,10 @@ public enum AppError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .network(let m):      return "Нет связи: \(m)"
-        case .tunnel(let m):       return "Ошибка VPN: \(m)"
-        case .serverUnavailable:   return "Сервер недоступен"
-        case .subscriptionExpired: return "Подписка истекла"
+        case .network(let m):      return String(format: NSLocalizedString("Нет связи: %@", comment: ""), m)
+        case .tunnel(let m):       return String(format: NSLocalizedString("Ошибка VPN: %@", comment: ""), m)
+        case .serverUnavailable:   return NSLocalizedString("Сервер недоступен", comment: "")
+        case .subscriptionExpired: return NSLocalizedString("Подписка истекла", comment: "")
         }
     }
 }

@@ -26,9 +26,11 @@ public struct SettingsView: View {
                         devicesSection
                         themeSection
                         connectionSection
-                        trustedSection
-                        protocolSection
-                        splitAppsSection
+                        if settings.expertMode {
+                            trustedSection
+                            protocolSection
+                            splitAppsSection
+                        }
                         otherSection
                         logoutSection
                         Text("bitaps vpn · v1.0")
@@ -57,7 +59,7 @@ public struct SettingsView: View {
                 HStack(spacing: 14) {
                     ZStack {
                         Circle().fill(BitColor.accentGradient)
-                        Text(initials)
+                        Text(LocalizedStringKey(initials))
                             .font(BitFont.display(22, weight: .bold))
                             .foregroundStyle(.black)
                     }
@@ -66,7 +68,7 @@ public struct SettingsView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
-                            Text(store.user?.displayName ?? "Гость")
+                            Text(LocalizedStringKey(store.user?.displayName ?? "Гость"))
                                 .font(BitFont.display(18, weight: .semibold))
                                 .foregroundStyle(BitColor.text)
                             if store.user?.isDemo == true {
@@ -74,7 +76,7 @@ public struct SettingsView: View {
                             }
                         }
                         if let handle = accountHandle {
-                            Text(handle)
+                            Text(LocalizedStringKey(handle))
                                 .font(BitFont.mono(13))
                                 .foregroundStyle(BitColor.muted)
                         }
@@ -119,7 +121,8 @@ public struct SettingsView: View {
     }
 
     private var personalizationDetail: String {
-        "\(settings.appIcon.label) · кнопка «\(settings.connectButton.label)»"
+        String(format: NSLocalizedString("%@ · кнопка «%@»", comment: ""),
+               settings.appIcon.label, settings.connectButton.label)
     }
 
     // MARK: - 2. Дополнительно (инструменты power-user)
@@ -129,85 +132,44 @@ public struct SettingsView: View {
             Kicker("дополнительно")
             BitCard(padding: BitMetric.pad * 0.6) {
                 VStack(alignment: .leading, spacing: 0) {
-                    NavigationLink {
-                        AdvancedNetworkView()
-                    } label: {
-                        navRowLabel(icon: "network", index: 0,
-                                    title: "Сеть и маршрутизация",
-                                    detail: networkDetail)
-                    }
-                    .buttonStyle(.plain)
-
+                    // Consumer tools — always visible.
+                    NavigationLink { SpeedTestView() } label: {
+                        navRowLabel(icon: "speedometer", index: 2, title: "Спид-тест", detail: speedDetail)
+                    }.buttonStyle(.plain)
                     rowDivider
-
-                    NavigationLink {
-                        LogsView()
-                    } label: {
-                        navRowLabel(icon: "doc.text.magnifyingglass", index: 1,
-                                    title: "Журнал",
-                                    detail: logsDetail)
-                    }
-                    .buttonStyle(.plain)
-
+                    NavigationLink { StatsView() } label: {
+                        navRowLabel(icon: "chart.bar.xaxis", index: 4, title: "Статистика", detail: statsDetail)
+                    }.buttonStyle(.plain)
                     rowDivider
-
-                    NavigationLink {
-                        SpeedTestView()
-                    } label: {
-                        navRowLabel(icon: "speedometer", index: 2,
-                                    title: "Спид-тест",
-                                    detail: speedDetail)
-                    }
-                    .buttonStyle(.plain)
-
+                    NavigationLink { LeakCheckView() } label: {
+                        navRowLabel(icon: "shield.checkerboard", index: 2, title: "Проверка утечек", detail: "IP и DNS/WebRTC")
+                    }.buttonStyle(.plain)
                     rowDivider
+                    NavigationLink { LogsView() } label: {
+                        navRowLabel(icon: "doc.text.magnifyingglass", index: 1, title: "Журнал", detail: logsDetail)
+                    }.buttonStyle(.plain)
 
-                    NavigationLink {
-                        ImportConfigView()
-                    } label: {
-                        navRowLabel(icon: "square.and.arrow.down.on.square", index: 3,
-                                    title: "Свой конфиг",
-                                    detail: configsDetail)
+                    // Power-user tools — only in expert mode.
+                    if settings.expertMode {
+                        rowDivider
+                        NavigationLink { AdvancedNetworkView() } label: {
+                            navRowLabel(icon: "network", index: 0, title: "Сеть и маршрутизация", detail: networkDetail)
+                        }.buttonStyle(.plain)
+                        rowDivider
+                        NavigationLink { ImportConfigView() } label: {
+                            navRowLabel(icon: "square.and.arrow.down.on.square", index: 3, title: "Свой конфиг", detail: configsDetail)
+                        }.buttonStyle(.plain)
+                        rowDivider
+                        NavigationLink { SchedulerView() } label: {
+                            navRowLabel(icon: "clock.fill", index: 0, title: "Расписание",
+                                        detail: String(format: NSLocalizedString("%lld активных", comment: ""), store.schedules.filter(\.enabled).count))
+                        }.buttonStyle(.plain)
+                        rowDivider
+                        NavigationLink { SmartRulesView() } label: {
+                            navRowLabel(icon: "arrow.triangle.branch", index: 1, title: "Умные правила",
+                                        detail: String(format: NSLocalizedString("%lld правил", comment: ""), store.smartRules.count))
+                        }.buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-
-                    rowDivider
-
-                    NavigationLink {
-                        StatsView()
-                    } label: {
-                        navRowLabel(icon: "chart.bar.xaxis", index: 4,
-                                    title: "Статистика",
-                                    detail: statsDetail)
-                    }
-                    .buttonStyle(.plain)
-                    rowDivider
-                    NavigationLink {
-                        SchedulerView()
-                    } label: {
-                        navRowLabel(icon: "clock.fill", index: 0,
-                                    title: "Расписание",
-                                    detail: "\(store.schedules.filter(\.enabled).count) активных")
-                    }
-                    .buttonStyle(.plain)
-                    rowDivider
-                    NavigationLink {
-                        SmartRulesView()
-                    } label: {
-                        navRowLabel(icon: "arrow.triangle.branch", index: 1,
-                                    title: "Умные правила",
-                                    detail: "\(store.smartRules.count) правил")
-                    }
-                    .buttonStyle(.plain)
-                    rowDivider
-                    NavigationLink {
-                        LeakCheckView()
-                    } label: {
-                        navRowLabel(icon: "shield.checkerboard", index: 2,
-                                    title: "Проверка утечек",
-                                    detail: "IP и DNS/WebRTC")
-                    }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -259,20 +221,21 @@ public struct SettingsView: View {
     }
 
     private var logsDetail: String {
-        store.logs.isEmpty ? "диагностика ядра" : "\(store.logs.count) записей"
+        store.logs.isEmpty ? NSLocalizedString("диагностика ядра", comment: "")
+            : String(format: NSLocalizedString("%lld записей", comment: ""), store.logs.count)
     }
 
     private var speedDetail: String {
         if let r = store.speedTestResult {
             return String(format: "↓ %.0f · ↑ %.0f Mbps", r.downMbps, r.upMbps)
         }
-        return "проверить скорость канала"
+        return NSLocalizedString("проверить скорость канала", comment: "")
     }
 
     private var configsDetail: String {
         store.importedConfigs.isEmpty
-            ? "vless:// · подписки · QR"
-            : "\(store.importedConfigs.count) сохр."
+            ? NSLocalizedString("vless:// · подписки · QR", comment: "")
+            : String(format: NSLocalizedString("%lld сохр.", comment: ""), store.importedConfigs.count)
     }
 
     private var statsDetail: String {
@@ -283,10 +246,10 @@ public struct SettingsView: View {
         HStack(spacing: 14) {
             GradientIcon(icon, index: index, size: 38)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BitFont.display(15, weight: .semibold))
                     .foregroundStyle(BitColor.text)
-                Text(detail)
+                Text(LocalizedStringKey(detail))
                     .font(BitFont.mono(12))
                     .foregroundStyle(BitColor.muted)
             }
@@ -321,7 +284,7 @@ public struct SettingsView: View {
                         }
                     }
                     if let sub = store.subscription {
-                        Text("До \(sub.deviceLimit) устройств")
+                        Text(String(format: NSLocalizedString("До %lld устройств", comment: ""), sub.deviceLimit))
                             .font(BitFont.mono(11))
                             .foregroundStyle(BitColor.muted)
                             .padding(.top, 12)
@@ -339,14 +302,14 @@ public struct SettingsView: View {
                 .frame(width: 26)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 8) {
-                    Text(device.name)
+                    Text(LocalizedStringKey(device.name))
                         .font(BitFont.display(15, weight: .medium))
                         .foregroundStyle(BitColor.text)
                     if device.current {
                         BitBadge("это устройство", color: BitColor.ok)
                     }
                 }
-                Text("активно \(relativeDate(device.lastActive))")
+                Text(String(format: NSLocalizedString("активно %@", comment: ""), relativeDate(device.lastActive)))
                     .font(BitFont.mono(11))
                     .foregroundStyle(BitColor.muted)
             }
@@ -366,7 +329,7 @@ public struct SettingsView: View {
 
     private func relativeDate(_ date: Date) -> String {
         let f = RelativeDateTimeFormatter()
-        f.locale = Locale(identifier: "ru_RU")
+        f.locale = AppLanguage.currentLocale
         f.unitsStyle = .full
         return f.localizedString(for: date, relativeTo: Date())
     }
@@ -379,7 +342,7 @@ public struct SettingsView: View {
             BitCard {
                 Picker("Тема", selection: themeBinding) {
                     ForEach(AppTheme.allCases) { theme in
-                        Text(theme.label).tag(theme)
+                        Text(LocalizedStringKey(theme.label)).tag(theme)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -390,116 +353,6 @@ public struct SettingsView: View {
 
     private var themeBinding: Binding<AppTheme> {
         Binding(get: { settings.theme }, set: { settings.theme = $0 })
-    }
-
-    // MARK: - 5. Оформление (акцент)
-
-    private var accentSection: some View {
-        VStack(alignment: .leading, spacing: BitMetric.gap) {
-            Kicker("оформление")
-            BitCard {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text("Цвет акцента")
-                            .font(BitFont.display(15, weight: .medium))
-                            .foregroundStyle(BitColor.text)
-                        Spacer()
-                        Text(settings.accent.label)
-                            .font(BitFont.mono(13))
-                            .foregroundStyle(BitColor.accent)
-                    }
-                    HStack(spacing: 16) {
-                        ForEach(AccentTheme.allCases) { theme in
-                            accentSwatch(theme)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    Text("Цвет акцента всего приложения")
-                        .font(BitFont.mono(11))
-                        .foregroundStyle(BitColor.muted)
-                }
-            }
-        }
-    }
-
-    private func accentSwatch(_ theme: AccentTheme) -> some View {
-        let selected = settings.accent == theme
-        return Button {
-            settings.accent = theme
-        } label: {
-            Circle()
-                .fill(Color(hex: theme.hexes.0))
-                .frame(width: 30, height: 30)
-                .overlay(
-                    Circle()
-                        .stroke(BitColor.text, lineWidth: selected ? 2 : 0)
-                        .padding(-4)
-                )
-                .bitGlow(Color(hex: theme.hexes.0), radius: selected ? 12 : 0,
-                         opacity: selected ? 0.6 : 0)
-                .scaleEffect(selected ? 1.12 : 1)
-                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: selected)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(theme.label)
-    }
-
-    // MARK: - 6. Маршрутизация
-
-    private var routingSection: some View {
-        VStack(alignment: .leading, spacing: BitMetric.gap) {
-            Kicker("маршрутизация")
-            VStack(spacing: BitMetric.gap) {
-                ForEach(RoutingMode.allCases) { mode in
-                    routingCard(mode)
-                }
-            }
-            BitCard {
-                gradientToggle("Авто-выбор сервера",
-                               subtitle: "Подключаться к самому быстрому серверу",
-                               icon: "bolt.horizontal.fill", index: 2,
-                               isOn: $settings.autoConnectFastest)
-            }
-        }
-    }
-
-    private func routingCard(_ mode: RoutingMode) -> some View {
-        let selected = settings.routingMode == mode
-        let idx = RoutingMode.allCases.firstIndex(of: mode) ?? 0
-        return Button {
-            settings.routingMode = mode
-        } label: {
-            HStack(spacing: 14) {
-                GradientIcon(mode.systemImage, index: idx, size: 40)
-                    .opacity(selected ? 1 : 0.85)
-                    .saturation(selected ? 1 : 0.85)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(mode.label)
-                        .font(BitFont.display(15, weight: .medium))
-                        .foregroundStyle(BitColor.text)
-                    Text(mode.detail)
-                        .font(BitFont.mono(12))
-                        .foregroundStyle(BitColor.muted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 18))
-                    .foregroundStyle(selected ? BitColor.accent : BitColor.line)
-            }
-            .padding(BitMetric.pad)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: BitMetric.radius, style: .continuous)
-                    .fill(selected ? BitColor.accent.opacity(0.08) : BitColor.panel)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: BitMetric.radius, style: .continuous)
-                    .stroke(selected ? BitColor.accent : BitColor.line, lineWidth: 1)
-            )
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - 7. Подключение
@@ -515,32 +368,29 @@ public struct SettingsView: View {
                                    isOn: $settings.connectOnLaunch)
                     Divider().overlay(BitColor.line)
                     gradientToggle("Автоподключение в небезопасных сетях",
-                                   subtitle: "Открытый Wi-Fi и неизвестные сети",
+                                   subtitle: "Открытый Wi-Fi и неизвестные сети · активно с боевым ядром (скоро)",
                                    icon: "wifi.exclamationmark", index: 1,
                                    isOn: $settings.autoConnect)
                     Divider().overlay(BitColor.line)
                     gradientToggle("Kill-switch",
-                                   subtitle: "Блокировать трафик без VPN",
+                                   subtitle: "Блокировать трафик без VPN · активно с боевым ядром (скоро)",
                                    icon: "shield.lefthalf.filled", index: 3,
                                    isOn: $settings.killSwitch)
-                    Divider().overlay(BitColor.line)
-                    gradientToggle("Cloudflare WARP",
-                                   subtitle: "Доп. обёртка для обхода блокировок",
-                                   icon: "cloud.bolt.fill", index: 4,
-                                   isOn: $settings.warp)
                 }
             }
-            HStack(spacing: 8) {
-                Image(systemName: "info.circle")
-                    .font(.system(size: 12))
-                    .foregroundStyle(BitColor.accent)
-                Text("Тонкая настройка MTU, DNS, MUX и фрагментации — в разделе «Сеть и маршрутизация».")
-                    .font(BitFont.mono(11))
-                    .foregroundStyle(BitColor.muted)
-                    .fixedSize(horizontal: false, vertical: true)
+            if settings.expertMode {
+                HStack(spacing: 8) {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(BitColor.accent)
+                    Text("Cloudflare WARP, MTU, DNS, MUX и фрагментация — в разделе «Сеть и маршрутизация».")
+                        .font(BitFont.mono(11))
+                        .foregroundStyle(BitColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 4)
+                .animation(.easeInOut(duration: 0.25), value: settings.warp)
             }
-            .padding(.horizontal, 4)
-            .animation(.easeInOut(duration: 0.25), value: settings.warp)
         }
     }
 
@@ -551,11 +401,11 @@ public struct SettingsView: View {
         HStack(spacing: 14) {
             GradientIcon(icon, index: index, size: 38)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BitFont.display(15, weight: .semibold))
                     .foregroundStyle(BitColor.text)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(subtitle)
+                Text(LocalizedStringKey(subtitle))
                     .font(BitFont.mono(12))
                     .foregroundStyle(BitColor.muted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -579,47 +429,19 @@ public struct SettingsView: View {
                         Spacer()
                         Picker("Протокол", selection: protoBinding) {
                             ForEach(TunnelProtocol.primary) { p in
-                                Text(p.label).tag(p)
+                                Text(LocalizedStringKey(p.label)).tag(p)
                             }
                         }
                         .labelsHidden()
                         .tint(BitColor.accent)
                     }
-                    Text("Полный список протоколов доступен для импортированных конфигов")
+                    Text("Полный список протоколов доступен для импортированных конфигов. Настройка DNS — в разделе «Сеть и маршрутизация».")
                         .font(BitFont.mono(11))
                         .foregroundStyle(BitColor.muted)
-                    Divider().overlay(BitColor.line)
-                    HStack {
-                        Text("DNS")
-                            .font(BitFont.display(15, weight: .medium))
-                            .foregroundStyle(BitColor.text)
-                        Spacer()
-                        Menu {
-                            ForEach(dnsOptions, id: \.self) { opt in
-                                Button(opt) { settings.dns = opt }
-                            }
-                        } label: {
-                            HStack(spacing: 6) {
-                                Text(settings.dns)
-                                    .font(BitFont.mono(13))
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 11))
-                            }
-                            .foregroundStyle(BitColor.accent)
-                        }
-                    }
                 }
             }
         }
     }
-
-    private let dnsOptions = [
-        "Авто (через VPN)",
-        "Cloudflare 1.1.1.1",
-        "Google 8.8.8.8",
-        "AdGuard",
-        "Свой…"
-    ]
 
     private var protoBinding: Binding<TunnelProtocol> {
         Binding(get: { settings.proto }, set: { settings.proto = $0 })
@@ -692,7 +514,7 @@ public struct SettingsView: View {
                 .font(.system(size: 15))
                 .foregroundStyle(BitColor.ok)
                 .frame(width: 22)
-            Text(net.ssid)
+            Text(LocalizedStringKey(net.ssid))
                 .font(BitFont.display(15, weight: .medium))
                 .foregroundStyle(BitColor.text)
             Spacer(minLength: 0)
@@ -745,13 +567,18 @@ public struct SettingsView: View {
                         }
                     }
 
-                    #if os(iOS)
                     Divider().overlay(BitColor.line).padding(.top, 8)
-                    Text("На iOS список приложений управляется системой — показан демо-набор.")
+                    Text("Исключения сохраняются и применятся с боевым VPN-ядром.")
                         .font(BitFont.mono(11))
                         .foregroundStyle(BitColor.muted)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 8)
+                    #if os(iOS)
+                    Text("На iOS список приложений управляется системой — показан демо-набор.")
+                        .font(BitFont.mono(11))
+                        .foregroundStyle(BitColor.muted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 4)
                     #endif
                 }
             }
@@ -762,10 +589,10 @@ public struct SettingsView: View {
         HStack(spacing: 14) {
             GradientIcon(app.symbol, index: index % 5, size: 38)
             VStack(alignment: .leading, spacing: 2) {
-                Text(app.name)
+                Text(LocalizedStringKey(app.name))
                     .font(BitFont.display(15, weight: .semibold))
                     .foregroundStyle(BitColor.text)
-                Text(app.excluded ? "мимо VPN — напрямую" : "через VPN")
+                Text(LocalizedStringKey(app.excluded ? "мимо VPN — напрямую" : "через VPN"))
                     .font(BitFont.mono(12))
                     .foregroundStyle(app.excluded ? BitColor.warn : BitColor.ok)
             }
@@ -796,6 +623,11 @@ public struct SettingsView: View {
                                    icon: "bell.fill", index: 0,
                                    isOn: $settings.notifications)
                     Divider().overlay(BitColor.line)
+                    gradientToggle("Режим эксперта",
+                                   subtitle: "Тонкие настройки сети, профили, правила, расписание",
+                                   icon: "slider.horizontal.3", index: 2,
+                                   isOn: $settings.expertMode)
+                    Divider().overlay(BitColor.line)
                     HStack(spacing: 14) {
                         GradientIcon("globe", index: 1, size: 38)
                         Text("Язык")
@@ -810,9 +642,26 @@ public struct SettingsView: View {
                         .tint(BitColor.accent)
                     }
                     Divider().overlay(BitColor.line)
+                    NavigationLink {
+                        TroubleshootView()
+                    } label: {
+                        HStack(spacing: 14) {
+                            GradientIcon("questionmark.circle", index: 1, size: 38)
+                            Text("Не подключается?")
+                                .font(BitFont.display(15, weight: .semibold))
+                                .foregroundStyle(BitColor.text)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(BitColor.muted)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    Divider().overlay(BitColor.line)
                     linkRow(icon: "lifepreserver", index: 2, title: "Поддержка",
-                            detail: "@\(TelegramAuth.botUsername)") {
-                        openURL(TelegramAuth.loginURL())
+                            detail: TelegramAuth.personalHandle) {
+                        openURL(TelegramAuth.personalURL())
                     }
                     Divider().overlay(BitColor.line)
                     linkRow(icon: "doc.text", index: 3, title: "Оферта", detail: "открыть") {
@@ -836,11 +685,11 @@ public struct SettingsView: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 GradientIcon(icon, index: index, size: 38)
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(BitFont.display(15, weight: .semibold))
                     .foregroundStyle(BitColor.text)
                 Spacer()
-                Text(detail)
+                Text(LocalizedStringKey(detail))
                     .font(BitFont.mono(12))
                     .foregroundStyle(BitColor.muted)
                 Image(systemName: "arrow.up.right")
@@ -867,5 +716,57 @@ public struct SettingsView: View {
             .foregroundStyle(BitColor.danger)
         }
         .padding(.top, 4)
+    }
+}
+
+// MARK: - Troubleshooting
+
+/// Short, friendly "can't connect?" checklist + a direct line to support.
+struct TroubleshootView: View {
+    @Environment(\.openURL) private var openURL
+
+    private let steps: [(String, String, String)] = [
+        ("wifi", "Проверьте интернет", "Откройте любой сайт без VPN. Нет интернета — VPN не поможет."),
+        ("arrow.clockwise", "Переподключитесь", "Выключите и снова включите подключение на главном экране."),
+        ("globe", "Смените сервер", "Если узел перегружен или заблокирован — выберите другой в «Серверах»."),
+        ("calendar.badge.exclamationmark", "Проверьте подписку", "В «Кабинете» — активна ли подписка и не истёк ли срок."),
+        ("iphone.and.arrow.forward", "Перезапустите приложение", "Полностью закройте bitaps и откройте заново."),
+    ]
+
+    var body: some View {
+        ZStack {
+            BitBackground()
+            ScrollView {
+                VStack(alignment: .leading, spacing: BitMetric.gap) {
+                    ForEach(Array(steps.enumerated()), id: \.offset) { i, s in
+                        BitCard {
+                            HStack(spacing: 14) {
+                                GradientIcon(s.0, index: i % 5, size: 40)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(LocalizedStringKey(s.1))
+                                        .font(BitFont.display(15, weight: .bold))
+                                        .foregroundStyle(BitColor.text)
+                                    Text(LocalizedStringKey(s.2))
+                                        .font(BitFont.mono(12))
+                                        .foregroundStyle(BitColor.muted)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                    BitButton("Написать в поддержку", icon: "paperplane.fill", kind: .solid) {
+                        openURL(TelegramAuth.personalURL())
+                    }
+                    .padding(.top, 4)
+                }
+                .padding(BitMetric.pad)
+                .frame(maxWidth: 560).frame(maxWidth: .infinity)
+            }
+        }
+        .navigationTitle("Не подключается?")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
     }
 }

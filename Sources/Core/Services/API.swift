@@ -38,9 +38,8 @@ public enum TelegramAuth {
         URL(string: "https://t.me/\(botUsername)?start=subscribe")!
     }
 
-    /// Personal Telegram for live support / orders. TODO(Варвара): заменить на
-    /// свой настоящий ник личного аккаунта.
-    public static let personalHandle = "@kashtanka"
+    /// Personal Telegram for live support / orders.
+    public static let personalHandle = "@bitapssupport"
     public static func personalURL() -> URL {
         URL(string: "https://t.me/\(personalHandle.drop(while: { $0 == "@" }))")!
     }

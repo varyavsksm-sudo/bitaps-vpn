@@ -118,7 +118,7 @@ public struct ImportConfigView: View {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 11))
                                 .foregroundStyle(BitColor.ok)
-                            Text("Распознано: \(p.label)")
+                            Text(String(format: NSLocalizedString("Распознано: %@", comment: ""), p.label))
                                 .font(BitFont.mono(11))
                                 .foregroundStyle(BitColor.muted)
                         }
@@ -153,15 +153,15 @@ public struct ImportConfigView: View {
             }
             .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-            if let err = store.errorMessage {
-                Text(err)
+            if let err = store.importError {
+                Text(LocalizedStringKey(err))
                     .font(BitFont.mono(11))
                     .foregroundStyle(BitColor.danger)
                     .fixedSize(horizontal: false, vertical: true)
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: store.errorMessage)
+        .animation(.easeInOut(duration: 0.2), value: store.importError)
     }
 
     private var detectedProto: TunnelProtocol? {
@@ -171,7 +171,7 @@ public struct ImportConfigView: View {
     }
 
     private func addCurrent() {
-        store.errorMessage = nil
+        store.importError = nil
         if store.addConfig(from: text, source: .link) {
             store.addLog(.success, "Профиль добавлен")
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) { text = "" }
@@ -232,7 +232,7 @@ public struct ImportConfigView: View {
                 GradientIcon(protoIcon(cfg.proto), index: protoChipIndex(cfg.proto), size: 44)
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
-                        Text(cfg.name)
+                        Text(LocalizedStringKey(cfg.name))
                             .font(BitFont.display(15, weight: .semibold))
                             .foregroundStyle(BitColor.text)
                             .lineLimit(1)
@@ -244,6 +244,17 @@ public struct ImportConfigView: View {
                         .lineLimit(1)
                 }
                 Spacer(minLength: 0)
+                Button {
+                    store.connect(using: cfg)
+                } label: {
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.black)
+                        .padding(8)
+                        .background(Circle().fill(BitColor.accentGradient))
+                }
+                .buttonStyle(.plain)
+                .bitGlow(BitColor.accent, radius: 10, opacity: 0.35)
                 Button {
                     store.addLog(.warn, "Профиль удалён: \(cfg.name)")
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
@@ -316,14 +327,14 @@ public struct ImportConfigView: View {
 
     private func profileWord(_ n: Int) -> String {
         let mod10 = n % 10, mod100 = n % 100
-        if mod10 == 1 && mod100 != 11 { return "профиль" }
-        if (2...4).contains(mod10) && !(12...14).contains(mod100) { return "профиля" }
-        return "профилей"
+        if mod10 == 1 && mod100 != 11 { return NSLocalizedString("профиль", comment: "") }
+        if (2...4).contains(mod10) && !(12...14).contains(mod100) { return NSLocalizedString("профиля", comment: "") }
+        return NSLocalizedString("профилей", comment: "")
     }
 
     private func relativeDate(_ date: Date) -> String {
         let f = RelativeDateTimeFormatter()
-        f.locale = Locale(identifier: "ru_RU")
+        f.locale = AppLanguage.currentLocale
         f.unitsStyle = .full
         return f.localizedString(for: date, relativeTo: Date())
     }

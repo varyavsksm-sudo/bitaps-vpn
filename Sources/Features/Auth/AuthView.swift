@@ -12,7 +12,9 @@ public struct AuthView: View {
     @State private var codeSent = false
     @State private var loadingTelegram = false
     @State private var loadingEmail = false
+    #if DEBUG
     @State private var loadingDemo = false
+    #endif
 
     private let termsURL = URL(string: "https://bitaps-vpn.surge.sh/terms.html")!
     private let privacyURL = URL(string: "https://bitaps-vpn.surge.sh/privacy.html")!
@@ -32,7 +34,9 @@ public struct AuthView: View {
                     VStack(spacing: BitMetric.gap) {
                         telegramButton
                         emailSection
-                        demoButton
+                        #if DEBUG
+                        demoButton          // debug-only — never ships in the App Store build
+                        #endif
                     }
                     .frame(maxWidth: 420)
 
@@ -76,10 +80,11 @@ public struct AuthView: View {
     private var telegramButton: some View {
         BitButton("Войти через Telegram", icon: "paperplane.fill",
                   kind: .solid, loading: loadingTelegram) {
-            openURL(TelegramAuth.loginURL())
             loadingTelegram = true
             Task {
-                await store.loginWithTelegram()
+                // Native Telegram OAuth sheet → signed payload → backend.
+                let payload = await TelegramLogin().authorize()
+                await store.loginWithTelegram(payload: payload ?? "demo-token")
                 loadingTelegram = false
             }
         }
@@ -123,7 +128,7 @@ public struct AuthView: View {
                             if codeSent {
                                 loadingEmail = true
                                 Task {
-                                    await store.loginWithTelegram()
+                                    await store.loginEmail(email)
                                     loadingEmail = false
                                 }
                             } else {
@@ -132,7 +137,7 @@ public struct AuthView: View {
                         }
 
                         if codeSent {
-                            Text("Код отправлен на \(email.isEmpty ? "почту" : email)")
+                            Text(String(format: NSLocalizedString("Код отправлен на %@", comment: ""), email.isEmpty ? NSLocalizedString("почту", comment: "") : email))
                                 .font(BitFont.mono(11))
                                 .foregroundStyle(BitColor.muted)
                         }
@@ -148,7 +153,7 @@ public struct AuthView: View {
             Image(systemName: icon)
                 .foregroundStyle(BitColor.accent)
                 .frame(width: 18)
-            TextField(placeholder, text: text)
+            TextField(LocalizedStringKey(placeholder), text: text)
                 .font(BitFont.mono(14))
                 .foregroundStyle(BitColor.text)
                 .textFieldStyle(.plain)
@@ -168,8 +173,9 @@ public struct AuthView: View {
         )
     }
 
-    // MARK: - Demo
+    // MARK: - Demo (debug builds only)
 
+    #if DEBUG
     private var demoButton: some View {
         BitButton("Попробовать демо", icon: "play.circle",
                   kind: .ghost, loading: loadingDemo) {
@@ -180,6 +186,7 @@ public struct AuthView: View {
             }
         }
     }
+    #endif
 
     // MARK: - Fine print
 

@@ -18,6 +18,11 @@ public final class LiveActivityController {
     // availability annotation; we down-cast inside guarded blocks.
     private var current: Any?
 
+    // Last known server, so `update()` can refresh the widget mirror even when no
+    // Live Activity is running (Live Activities may be disabled by the user).
+    private var lastCity = "—"
+    private var lastFlag = "🌐"
+
     @available(iOS 16.1, *)
     private var activity: Activity<ConnectionAttributes>? {
         get { current as? Activity<ConnectionAttributes> }
@@ -27,13 +32,16 @@ public final class LiveActivityController {
     // MARK: - Lifecycle
 
     public func start(city: String, flag: String) {
-        guard #available(iOS 16.1, *) else { return }
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
-        // Replace any stale activity first.
-        if activity != nil { end() }
+        let connecting = NSLocalizedString("Подключение…", comment: "")
+        // Clear any stale Live Activity FIRST (end() resets lastCity/lastFlag),
+        // then adopt the new server so update() mirrors the right city.
+        if #available(iOS 16.1, *), activity != nil { end() }
+        lastCity = city; lastFlag = flag
+        writeWidgetState(status: connecting, city: city, flag: flag, connected: false)
 
+        guard #available(iOS 16.1, *), ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         let attributes = ConnectionAttributes(serverCity: city, serverFlag: flag)
-        let state = ConnectionAttributes.ContentState(statusText: "Подключение…",
+        let state = ConnectionAttributes.ContentState(statusText: connecting,
                                                       connected: false)
         do {
             activity = try Activity.request(attributes: attributes,
@@ -42,36 +50,42 @@ public final class LiveActivityController {
         } catch {
             activity = nil
         }
-        writeWidgetState(status: "Подключение…", city: city, flag: flag, connected: false)
     }
 
     public func update(statusText: String, connected: Bool,
                        down: Double, up: Double, startedAt: Date?) {
-        guard #available(iOS 16.1, *) else { return }
+        // Always refresh the widget mirror, even without a running Live Activity.
+        writeWidgetState(status: statusText, city: lastCity, flag: lastFlag, connected: connected)
+        guard #available(iOS 16.1, *), let activity else { return }
         let state = ConnectionAttributes.ContentState(statusText: statusText,
                                                       connected: connected,
                                                       downBps: down, upBps: up,
                                                       startedAt: startedAt)
-        guard let activity else { return }
         Task { await activity.update(using: state) }
-        let city = activity.attributes.serverCity
-        let flag = activity.attributes.serverFlag
-        writeWidgetState(status: statusText, city: city, flag: flag, connected: connected)
     }
 
     public func end() {
-        guard #available(iOS 16.1, *) else { return }
-        guard let activity else { return }
-        let final = ConnectionAttributes.ContentState(statusText: "Отключено",
+        let disconnected = NSLocalizedString("Отключено", comment: "")
+        writeWidgetState(status: disconnected, city: "—", flag: "🌐", connected: false)
+        lastCity = "—"; lastFlag = "🌐"
+        guard #available(iOS 16.1, *), let activity else { return }
+        let final = ConnectionAttributes.ContentState(statusText: disconnected,
                                                       connected: false)
         Task { await activity.end(using: final, dismissalPolicy: .immediate) }
         self.activity = nil
-        writeWidgetState(status: "Отключено", city: "—", flag: "🌐", connected: false)
     }
 
     // MARK: - App Group mirror for the home-screen widget
 
+    private var lastMirror = ""
+
     public func writeWidgetState(status: String, city: String, flag: String, connected: Bool) {
+        // The widget only shows status/city/flag/connected — which don't change
+        // every second. Skip the whole write+reload when nothing changed, avoiding
+        // per-tick App-Group writes and timeline churn (battery / OS throttling).
+        let snapshot = "\(status)|\(city)|\(flag)|\(connected)"
+        guard snapshot != lastMirror else { return }
+        lastMirror = snapshot
         let d = UserDefaults(suiteName: Self.suite)
         d?.set(status, forKey: "wstatus")
         d?.set(city, forKey: "wcity")
