@@ -16,8 +16,8 @@ public struct AuthView: View {
     @State private var loadingDemo = false
     #endif
 
-    private let termsURL = URL(string: "https://bitaps-vpn.surge.sh/terms.html")!
-    private let privacyURL = URL(string: "https://bitaps-vpn.surge.sh/privacy.html")!
+    private let termsURL = URL(string: "https://bitapsvpn.com/terms.html")!
+    private let privacyURL = URL(string: "https://bitapsvpn.com/privacy.html")!
 
     public init() {}
 

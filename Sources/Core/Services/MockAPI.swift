@@ -1,7 +1,7 @@
 import Foundation
 
-/// Demo backend. Data matches the landing page (bitaps-vpn.surge.sh) and the bot:
-/// tariffs 199/499/899/1490 ₽, 3-day trial, up to 10 devices, VLESS+Reality.
+/// Demo backend. Data matches the landing page (bitapsvpn.com) and the bot:
+/// tariffs 399/999/1790/2990 ₽, 3-day trial, up to 10 devices, VLESS+Reality.
 public actor MockAPI: BitAPI {
     private var user: User?
     private var subscription: Subscription = .demoTrial

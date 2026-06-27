@@ -435,7 +435,7 @@ public struct SettingsView: View {
                         .labelsHidden()
                         .tint(BitColor.accent)
                     }
-                    Text("Полный список протоколов доступен для импортированных конфигов. Настройка DNS — в разделе «Сеть и маршрутизация».")
+                    Text("Полный список протоколов доступен для импортированных конфигов. Настройка DNS — в разделе «Сеть и маршрутизация». Применяется с боевым ядром (скоро).")
                         .font(BitFont.mono(11))
                         .foregroundStyle(BitColor.muted)
                 }
@@ -460,7 +460,7 @@ public struct SettingsView: View {
                             Text("Доверенные сети")
                                 .font(BitFont.display(15, weight: .semibold))
                                 .foregroundStyle(BitColor.text)
-                            Text("Не подключаться автоматически в этих Wi-Fi")
+                            Text("Не подключаться автоматически в этих Wi-Fi · активно с боевым ядром (скоро)")
                                 .font(BitFont.mono(12))
                                 .foregroundStyle(BitColor.muted)
                                 .fixedSize(horizontal: false, vertical: true)
@@ -665,11 +665,11 @@ public struct SettingsView: View {
                     }
                     Divider().overlay(BitColor.line)
                     linkRow(icon: "doc.text", index: 3, title: "Оферта", detail: "открыть") {
-                        if let u = URL(string: "https://bitaps-vpn.surge.sh/terms.html") { openURL(u) }
+                        if let u = URL(string: "https://bitapsvpn.com/terms.html") { openURL(u) }
                     }
                     Divider().overlay(BitColor.line)
                     linkRow(icon: "hand.raised", index: 4, title: "Политика конфиденциальности", detail: "открыть") {
-                        if let u = URL(string: "https://bitaps-vpn.surge.sh/privacy.html") { openURL(u) }
+                        if let u = URL(string: "https://bitapsvpn.com/privacy.html") { openURL(u) }
                     }
                 }
             }

@@ -12,7 +12,7 @@ import UIKit
 /// validates (id, first_name, last_name, username, photo_url, auth_date, hash).
 ///
 /// Requirements (configured outside the app, one-time):
-///  • The bot's login domain in @BotFather must be `bitaps-vpn.surge.sh`
+///  • The bot's login domain in @BotFather must be `bitapsvpn.com`
 ///    (already set). Telegram checks `origin` against it.
 ///  • Telegram redirects to `return_to` with `#tgAuthResult=<base64url(json)>`.
 ///    If Telegram refuses the custom-scheme return, host a one-line redirect
@@ -20,7 +20,7 @@ import UIKit
 @MainActor
 public final class TelegramLogin: NSObject {
     public static let botID = "8820784988"
-    public static let origin = "https://bitaps-vpn.surge.sh"
+    public static let origin = "https://bitapsvpn.com"
     public static let callbackScheme = "bitapsvpn"
 
     #if canImport(AuthenticationServices)

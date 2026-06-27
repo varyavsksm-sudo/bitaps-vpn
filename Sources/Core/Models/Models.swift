@@ -596,7 +596,7 @@ public struct Subscription: Equatable, Sendable, Codable {
     public var daysLeft: Int? {
         guard let expires else { return nil }
         let secs = expires.timeIntervalSinceNow
-        return secs > 0 ? Int(secs / 86_400) : 0
+        return secs > 0 ? max(1, Int((secs + 86_399) / 86_400)) : 0
     }
 }
 

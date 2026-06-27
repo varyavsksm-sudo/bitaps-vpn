@@ -172,7 +172,7 @@ public struct ServersView: View {
                                 .foregroundStyle(BitColor.text)
                             BitBadge("PRO", color: BitColor.violet)
                         }
-                        Text("Трафик через два узла — двойное шифрование")
+                        Text("Трафик через два узла — двойное шифрование · активно с боевым ядром (скоро)")
                             .font(BitFont.mono(11))
                             .foregroundStyle(BitColor.muted)
                     }
