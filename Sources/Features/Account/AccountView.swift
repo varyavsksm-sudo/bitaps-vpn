@@ -600,7 +600,7 @@ struct BBoxOrderView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Заказ B-box").font(BitFont.display(24, weight: .bold))
                             .foregroundStyle(BitColor.text)
-                        Text("VPN для всего дома · 4 990 ₽")
+                        Text("VPN для всего дома · 15 000 ₽")
                             .font(BitFont.mono(13)).foregroundStyle(BitColor.accent)
                     }
                     Spacer()
