@@ -1,3 +1,9 @@
+> ## ⚠️ АРХИВ / DEPRECATED (2026-07)
+> Этот SwiftUI-апп (iOS + macOS) **больше не развивается.** Принято решение об ЕДИНОМ приложении
+> на все 5 ОС на **Flutter** → репозиторий **[varyavsksm-sudo/bitaps-desktop](https://github.com/varyavsksm-sudo/bitaps-desktop)**
+> (один `lib/main.dart` собирается в Windows/Linux/macOS/Android/iOS через CI). Сюда коммиты не вносить.
+> Код оставлен как референс (дизайн + нативный PacketTunnel/Widget — пригодятся при возврате нативного iOS-тоннеля).
+
 # bitaps VPN — приложение (iOS + macOS)
 
 Нативное приложение на **Swift + SwiftUI**, единый multiplatform-таргет: **iOS 16+** и **macOS 13+**.
