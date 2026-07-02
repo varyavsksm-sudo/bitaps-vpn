@@ -1,5 +1,44 @@
 import SwiftUI
 import Combine
+import Security
+
+/// Keychain-хранилище для чувствительных данных. Импортированные vless://-конфиги содержат
+/// боевой credential (UUID/пароль сервера); раньше лежали в UserDefaults (plist в
+/// ~/Library/Preferences читается любым процессом того же юзера, попадает в нешифрованные бэкапы).
+enum KeychainBox {
+    private static let service = "app.bitaps.vpn"
+    static func set(_ data: Data, _ key: String) {
+        let base: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+        ]
+        SecItemDelete(base as CFDictionary)
+        var add = base
+        add[kSecValueData as String] = data
+        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        SecItemAdd(add as CFDictionary, nil)
+    }
+    static func get(_ key: String) -> Data? {
+        let q: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne,
+        ]
+        var out: AnyObject?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess else { return nil }
+        return out as? Data
+    }
+    static func delete(_ key: String) {
+        SecItemDelete([
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key,
+        ] as CFDictionary)
+    }
+}
 
 /// Single source of truth for the whole app. Every screen observes this.
 /// Owns the API + tunnel behind their protocols, so swapping Mock→real is a
@@ -114,7 +153,14 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
         let d = UserDefaults.standard
         lifetimeDown = Int64(d.integer(forKey: "bitaps.lifeDown"))
         lifetimeUp = Int64(d.integer(forKey: "bitaps.lifeUp"))
-        if let data = d.data(forKey: "bitaps.configs"),
+        // конфиги — из Keychain; однократная миграция из старого UserDefaults (plaintext) при наличии
+        var cfgData = KeychainBox.get("bitaps.configs")
+        if cfgData == nil, let legacy = d.data(forKey: "bitaps.configs") {
+            KeychainBox.set(legacy, "bitaps.configs")
+            d.removeObject(forKey: "bitaps.configs")
+            cfgData = legacy
+        }
+        if let data = cfgData,
            let cfgs = try? JSONDecoder().decode([ImportedConfig].self, from: data) {
             importedConfigs = cfgs
         }
@@ -158,7 +204,7 @@ public final class AppStore: ObservableObject, VPNTunnelDelegate {
 
     private func persistConfigs() {
         if let data = try? JSONEncoder().encode(importedConfigs) {
-            UserDefaults.standard.set(data, forKey: "bitaps.configs")
+            KeychainBox.set(data, "bitaps.configs")   // Keychain, не UserDefaults (боевой credential)
         }
     }
     private func persistLog() {
